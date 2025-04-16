@@ -1,0 +1,99 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/constants/app_constants.dart';
+import 'features/auth/providers/auth_provider.dart';
+import 'features/auth/screens/login_screen.dart';
+import 'features/auth/screens/reset_password_screen.dart';
+import 'features/auth/screens/splash_screen.dart';
+import 'features/dashboard/providers/dashboard_provider.dart';
+import 'features/dashboard/screens/dashboard_screen.dart';
+import 'features/department/screens/department_list_screen.dart';
+import 'features/department/screens/department_detail_screen.dart';
+import 'services/supabase_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Initialize Supabase
+  await SupabaseService.initialize();
+  
+  runApp(const SmartSchoolApp());
+}
+
+class SmartSchoolApp extends StatelessWidget {
+  const SmartSchoolApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        // Add other providers here
+      ],
+      child: MaterialApp(
+        title: appName,
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primaryColor: AppColors.primary,
+          scaffoldBackgroundColor: AppColors.background,
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: AppColors.primary,
+            primary: AppColors.primary,
+            secondary: AppColors.secondary,
+            error: AppColors.error,
+            background: AppColors.background,
+          ),
+          useMaterial3: true,
+          appBarTheme: const AppBarTheme(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            elevation: 0,
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(
+                color: AppColors.primary,
+                width: 2,
+              ),
+            ),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+            ),
+          ),
+        ),
+        initialRoute: AppRoutes.splash,
+        routes: {
+          AppRoutes.splash: (context) => const SplashScreen(),
+          AppRoutes.login: (context) => const LoginScreen(),
+          AppRoutes.resetPassword: (context) => const ResetPasswordScreen(),
+          AppRoutes.dashboard: (context) => const DashboardScreen(),
+          AppRoutes.department: (context) => const DepartmentListScreen(),
+          // Add other routes as they are developed
+        },
+        onGenerateRoute: (settings) {
+          if (settings.name == AppRoutes.department && settings.arguments != null) {
+            return MaterialPageRoute(
+              builder: (context) => DepartmentDetailScreen(
+                departmentId: settings.arguments as String,
+              ),
+            );
+          }
+          return null;
+        },
+      ),
+    );
+  }
+}
