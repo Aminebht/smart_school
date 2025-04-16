@@ -61,15 +61,22 @@ class SupabaseService {
   static Future<void> updateDeviceState(String deviceId, bool state) async {
     await _client
         .from('devices')
-        .update({'state': state})
-        .eq('id', deviceId);
+        .update({'is_online': state})
+        .eq('device_id', deviceId);
   }
   
   static Future<void> updateDeviceValue(String deviceId, double value) async {
     await _client
         .from('devices')
         .update({'value': value})
-        .eq('id', deviceId);
+        .eq('device_id', deviceId);
+  }
+  
+  static Future<void> toggleActuator(String actuatorId, bool isOn) async {
+    await _client
+        .from('actuators')
+        .update({'is_on': isOn})
+        .eq('actuator_id', actuatorId);
   }
   
   // Department and classroom methods
@@ -91,13 +98,67 @@ class SupabaseService {
   }
   
   static Future<Map<String, dynamic>> getClassroomDetails(String classroomId) async {
-    final response = await _client
+    // Get the classroom base details
+    final classroom = await _client
         .from('classrooms')
-        .select('*, devices(*), sensors(*), actuators(*), cameras(*)')
+        .select('*')
         .eq('classroom_id', classroomId)
         .single();
     
-    return response;
+    // Get the devices for the classroom
+    final devices = await _client
+        .from('devices')
+        .select('*')
+        .eq('classroom_id', classroomId);
+    
+    // Get device IDs for this classroom
+    final deviceIds = devices.map((device) => device['device_id']).toList();
+    
+    // Get sensors and actuators using device_id
+    List<Map<String, dynamic>> sensors = [];
+    if (deviceIds.isNotEmpty) {
+      sensors = await _client
+          .from('sensors')
+          .select('*')
+          .filter('device_id', 'in', deviceIds);
+    }
+    
+    List<Map<String, dynamic>> actuators = [];
+    if (deviceIds.isNotEmpty) {
+      actuators = await _client
+          .from('actuators')
+          .select('*')
+          .filter('device_id', 'in', deviceIds);
+    }
+    
+    List<Map<String, dynamic>> cameras = [];
+    if (deviceIds.isNotEmpty) {
+      cameras = await _client
+          .from('cameras')
+          .select('*')
+          .filter('device_id', 'in', deviceIds);
+    }
+    
+    // Get sensor readings
+    final sensorIds = sensors.map((sensor) => sensor['sensor_id']).toList();
+    List<Map<String, dynamic>> readings = [];
+    if (sensorIds.isNotEmpty) {
+      readings = await _client
+          .from('sensor_readings')
+          .select('*')
+          .filter('sensor_id', 'in', sensorIds)
+          .order('timestamp', ascending: false)
+          .limit(50);
+    }
+    
+    // Combine all the data
+    classroom['devices'] = devices;
+    classroom['sensors'] = sensors;
+    classroom['actuators'] = actuators;
+    classroom['cameras'] = cameras;
+    classroom['sensor_readings'] = readings;
+    
+    return classroom;
   }
   
   // Alert methods

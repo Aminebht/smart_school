@@ -36,7 +36,7 @@ class AppRoutes {
   static const String dashboard = '/dashboard';
   static const String department = '/department';
   static const String classroom = '/classroom';
-  static const String camera = '/camera';
+  static const String cameraView = '/camera';
   static const String security = '/security';
   static const String analytics = '/analytics';
   static const String settings = '/settings';

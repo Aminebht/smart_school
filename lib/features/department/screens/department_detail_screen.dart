@@ -135,11 +135,6 @@ class _DepartmentDetailScreenState extends State<DepartmentDetailScreen> {
                 Icons.layers,
               ),
               _buildInfoCard(
-                'Classrooms',
-                department.classroomCount.toString(),
-                Icons.meeting_room,
-              ),
-              _buildInfoCard(
                 'Status',
                 _getStatusText(department.status),
                 Icons.info_outline,

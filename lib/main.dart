@@ -10,6 +10,7 @@ import 'features/dashboard/providers/dashboard_provider.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
 import 'features/department/screens/department_list_screen.dart';
 import 'features/department/screens/department_detail_screen.dart';
+import 'features/classroom/screens/classroom_detail_screen.dart';
 import 'services/supabase_service.dart';
 
 void main() async {
@@ -88,6 +89,13 @@ class SmartSchoolApp extends StatelessWidget {
             return MaterialPageRoute(
               builder: (context) => DepartmentDetailScreen(
                 departmentId: settings.arguments as String,
+              ),
+            );
+          }
+          if (settings.name == AppRoutes.classroom && settings.arguments != null) {
+            return MaterialPageRoute(
+              builder: (context) => ClassroomDetailScreen(
+                classroomId: settings.arguments as String,
               ),
             );
           }
