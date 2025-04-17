@@ -84,26 +84,7 @@ class _CameraThumbnailWidgetState extends State<CameraThumbnailWidget> {
               width: widget.width,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: _camera!.streamUrl.isNotEmpty
-                    ? Image.network(
-                        _camera!.streamUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildOfflineCamera();
-                        },
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                            ),
-                          );
-                        },
-                      )
-                    : _buildOfflineCamera(),
+                child: _buildCameraPreview(),
               ),
             ),
             Positioned(
@@ -163,6 +144,62 @@ class _CameraThumbnailWidgetState extends State<CameraThumbnailWidget> {
         ),
       ),
     );
+  }
+
+  Widget _buildCameraPreview() {
+    // For debugging
+    print('Camera URL: ${_camera!.streamUrl}, Active: ${_camera!.isActive}');
+
+    if (_camera!.streamUrl.isEmpty) {
+      return _buildOfflineCamera();
+    }
+
+    // Try to determine if it's a standard image URL or a video stream
+    final isVideoStream = _camera!.streamUrl.contains('.m3u8') || 
+                        _camera!.streamUrl.contains('stream') ||
+                        _camera!.streamUrl.contains('.mp4');
+
+    if (isVideoStream) {
+      // For video streams, show a placeholder with camera icon
+      return Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(color: Colors.black45),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: const [
+              Icon(Icons.videocam, size: 40, color: Colors.white),
+              SizedBox(height: 8),
+              Text(
+                'Live Video Feed',
+                style: TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+        ],
+      );
+    } else {
+      // For static image URLs
+      return Image.network(
+        _camera!.streamUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          print('Error loading image: $error');
+          return _buildOfflineCamera();
+        },
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return Center(
+            child: CircularProgressIndicator(
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          );
+        },
+      );
+    }
   }
 
   Widget _buildLoadingWidget() {
