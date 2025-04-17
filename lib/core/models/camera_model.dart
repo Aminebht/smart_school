@@ -1,76 +1,70 @@
-import '../constants/app_constants.dart';
+import 'dart:convert';
 
 class CameraModel {
   final int cameraId;
-  final int deviceId;
-  final int? classroomId;
   final String name;
+  final String description;
+  final int classroomId;
   final String streamUrl;
+  final String cameraType;
   final bool isActive;
-  final bool motionDetectionEnabled;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final DeviceStatus status;
+  final bool hasMotionDetection;
+  final bool isRecording;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   CameraModel({
     required this.cameraId,
-    required this.deviceId,
-    this.classroomId,
     required this.name,
+    required this.description,
+    required this.classroomId,
     required this.streamUrl,
+    required this.cameraType,
     required this.isActive,
-    required this.motionDetectionEnabled,
-    required this.createdAt,
-    required this.updatedAt,
-    this.status = DeviceStatus.normal,
+    required this.hasMotionDetection,
+    required this.isRecording,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory CameraModel.fromJson(Map<String, dynamic> json) {
-    print('🔍 Parsing camera: $json'); // Debug logging
-    
-    // Handle potential null values even though they should be NOT NULL in schema
     return CameraModel(
-      cameraId: json['camera_id'] ?? 0,
-      deviceId: json['device_id'] ?? 0,
-      classroomId: json['classroom_id'],
-      name: json['name'],
-      streamUrl: json['stream_url'] ?? '', // Handle null stream_url
-      isActive: json['is_active'] ?? false,
-      motionDetectionEnabled: json['motion_detection_enabled'] ?? false,
-      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
-      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : DateTime.now(),
-      status: json['status'] != null
-          ? DeviceStatus.values.firstWhere(
-              (e) => e.toString().split('.').last == json['status'],
-              orElse: () => DeviceStatus.normal)
-          : DeviceStatus.normal,
+      cameraId: json['camera_id'] as int,
+      name: json['name'] as String,
+      description: json['description'] as String? ?? '',
+      classroomId: json['classroom_id'] as int,
+      streamUrl: json['stream_url'] as String? ?? '',
+      cameraType: json['camera_type'] as String? ?? 'standard',
+      isActive: json['is_active'] as bool? ?? false,
+      hasMotionDetection: json['has_motion_detection'] as bool? ?? false,
+      isRecording: json['is_recording'] as bool? ?? false,
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : null,
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'] as String)
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    String statusStr;
-    switch (status) {
-      case DeviceStatus.warning:
-        statusStr = 'warning';
-        break;
-      case DeviceStatus.critical:
-        statusStr = 'critical';
-        break;
-      default:
-        statusStr = 'normal';
-    }
-
     return {
       'camera_id': cameraId,
-      'device_id': deviceId,
-      'classroom_id': classroomId,
       'name': name,
+      'description': description,
+      'classroom_id': classroomId,
       'stream_url': streamUrl,
+      'camera_type': cameraType,
       'is_active': isActive,
-      'motion_detection_enabled': motionDetectionEnabled,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-      'status': statusStr,
+      'has_motion_detection': hasMotionDetection,
+      'is_recording': isRecording,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
     };
+  }
+
+  @override
+  String toString() {
+    return jsonEncode(toJson());
   }
 }
