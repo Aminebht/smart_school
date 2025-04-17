@@ -40,15 +40,18 @@ class SensorStatusCard extends StatelessWidget {
                     color: AppColors.textSecondary,
                   ),
                   const SizedBox(width: 6),
-                  Text(
-                    _getSensorName(),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.text,
+                  Expanded(
+                    child: Text(
+                      _getSensorName(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.text,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 4),
                   Container(
                     width: 10,
                     height: 10,
@@ -65,20 +68,29 @@ class SensorStatusCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    reading.displayValue,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: reading.statusColor,
+                  Flexible(
+                    flex: 3,
+                    child: Text(
+                      reading.displayValue,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: reading.statusColor,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const Spacer(),
-                  Text(
-                    _getStatusText(),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: reading.statusColor,
+                  const SizedBox(width: 8),
+                  Flexible(
+                    flex: 2,
+                    child: Text(
+                      _getStatusText(),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: reading.statusColor,
+                      ),
+                      textAlign: TextAlign.end,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
@@ -150,4 +162,4 @@ class SensorStatusCard extends StatelessWidget {
       return '${difference.inDays}d ago';
     }
   }
-} 
+}

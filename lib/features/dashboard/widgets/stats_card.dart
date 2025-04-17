@@ -23,44 +23,51 @@ class StatsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(10), // Further reduced padding
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Icon
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 20,
-              ),
+            // Icon and Value in a row to save vertical space
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(5), // Further reduced padding
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: color,
+                    size: 16, // Smaller icon
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15, // Slightly smaller font
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 6), // Reduced spacing
             
             // Title
             Text(
               title,
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 10, // Further reduced font size
                 fontWeight: FontWeight.w500,
                 color: AppColors.textSecondary,
               ),
-            ),
-            const SizedBox(height: 4),
-            
-            // Value
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -81,11 +88,11 @@ class StatsCardGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridView.count(
       crossAxisCount: 2,
-      childAspectRatio: 1.5,
+      childAspectRatio: 2.0, // Increased to allow more width than height
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
+      crossAxisSpacing: 10, // Reduced spacing
+      mainAxisSpacing: 10, // Reduced spacing
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
         if (stats.containsKey('average_temperature'))
@@ -119,4 +126,4 @@ class StatsCardGrid extends StatelessWidget {
       ],
     );
   }
-} 
+}
