@@ -10,13 +10,13 @@ const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ
 
 // Theme colors
 class AppColors {
-  static const Color primary = Color(0xFF1A73E8);
-  static const Color secondary = Color(0xFF4CAF50);
+  static const Color primary = Color(0xFF002255);
+  static const Color secondary = Color(0xFFFBE822);
   static const Color background = Color(0xFFF5F5F5);
   static const Color surface = Colors.white;
-  static const Color error = Color(0xFFE53935);
-  static const Color warning = Color(0xFFFFC107);
-  static const Color success = Color(0xFF4CAF50);
+  static const Color error = Color(0xFFA71D31);
+  static const Color warning = Color(0xFFF44708);
+  static const Color success = Color(0xFF426A5A);
   static const Color text = Color(0xFF212121);
   static const Color textSecondary = Color(0xFF757575);
 }

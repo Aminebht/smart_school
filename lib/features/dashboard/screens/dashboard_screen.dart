@@ -96,11 +96,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
-                child: const Center(
-                  child: Icon(
-                    Icons.school,
-                    color: Colors.white,
-                    size: 24,
+                child: Center(
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/images/logo.png',
+                      width: 24,
+                      height: 24,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
               ),
@@ -109,7 +112,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Smart School',
+                    'FST',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -304,4 +307,4 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-} 
+}

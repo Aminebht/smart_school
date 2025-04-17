@@ -19,17 +19,26 @@ class DepartmentDetailScreen extends StatefulWidget {
 }
 
 class _DepartmentDetailScreenState extends State<DepartmentDetailScreen> {
+  late DepartmentProvider _departmentProvider;
+  
+  @override
+  void initState() {
+    super.initState();
+    _departmentProvider = DepartmentProvider();
+    _departmentProvider.loadDepartment(widget.departmentId);
+  }
+
   @override
   void dispose() {
     // Clean up the provider when leaving the screen
-    Provider.of<DepartmentProvider>(context, listen: false).clearData();
+    _departmentProvider.clearData();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => DepartmentProvider()..loadDepartment(widget.departmentId),
+    return ChangeNotifierProvider.value(
+      value: _departmentProvider,
       child: Consumer<DepartmentProvider>(
         builder: (context, provider, _) {
           if (provider.isLoading) {
@@ -286,4 +295,4 @@ class _DepartmentDetailScreenState extends State<DepartmentDetailScreen> {
         return 'Normal';
     }
   }
-} 
+}

@@ -44,39 +44,39 @@ class _SplashScreenState extends State<SplashScreen> {
           children: [
             // Logo
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
-                Icons.school,
-                size: 80,
-                color: AppColors.primary,
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 80,
+                height: 80,
+                fit: BoxFit.contain,
               ),
             ),
             const SizedBox(height: 32),
-            
-            // App name
             const Text(
-              'Smart School',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            
-            const SizedBox(height: 8),
-            
-            // App subtitle
-            const Text(
-              'IoT Management System',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.white,
-              ),
-            ),
+                      'Faculty of Sciences',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'أم الكليات',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontStyle: FontStyle.italic,
+                        color: AppColors.secondary,
+                      ),
+                    ),
+     
             
             const SizedBox(height: 64),
             
@@ -89,4 +89,4 @@ class _SplashScreenState extends State<SplashScreen> {
       ),
     );
   }
-} 
+}

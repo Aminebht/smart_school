@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 16),
                     const Text(
-                      'Smart School',
+                      'FST',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 24,
@@ -74,11 +74,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'IoT Management System',
+                      'أم الكليات',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 16,
-                        color: AppColors.textSecondary,
+                        fontSize: 18,
+                        color: AppColors.secondary,
                       ),
                     ),
                     const SizedBox(height: 48),
