@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_school/core/models/camera_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/app_constants.dart';
 import 'features/auth/providers/auth_provider.dart';
@@ -11,6 +12,7 @@ import 'features/dashboard/screens/dashboard_screen.dart';
 import 'features/department/screens/department_list_screen.dart';
 import 'features/department/screens/department_detail_screen.dart';
 import 'features/classroom/screens/classroom_detail_screen.dart';
+import 'features/camera/screens/camera_view_screen.dart';
 import 'services/supabase_service.dart';
 
 void main() async {
@@ -96,6 +98,13 @@ class SmartSchoolApp extends StatelessWidget {
             return MaterialPageRoute(
               builder: (context) => ClassroomDetailScreen(
                 classroomId: settings.arguments as String,
+              ),
+            );
+          }
+          if (settings.name == AppRoutes.camera && settings.arguments != null) {
+            return MaterialPageRoute(
+              builder: (context) => CameraViewScreen(
+                camera: settings.arguments as CameraModel,
               ),
             );
           }

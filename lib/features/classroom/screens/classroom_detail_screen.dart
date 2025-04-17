@@ -9,6 +9,7 @@ import '../providers/classroom_provider.dart';
 import '../widgets/device_control_widget.dart';
 import '../widgets/sensor_reading_chart.dart';
 import '../widgets/sensor_status_card.dart';
+import '../widgets/camera_thumbnail_widget.dart';
 
 class ClassroomDetailScreen extends StatefulWidget {
   final String classroomId;
@@ -109,6 +110,38 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
                     children: [
                       _buildClassroomHeader(classroom),
                       _buildSensorStatusGrid(provider),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Classroom Camera',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                TextButton.icon(
+                                  icon: const Icon(Icons.history),
+                                  label: const Text('View Events'),
+                                  onPressed: () {
+                                    // Navigate to camera events history
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            CameraThumbnailWidget(
+                              classroomId: int.parse(widget.classroomId),
+                              height: 180,
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),

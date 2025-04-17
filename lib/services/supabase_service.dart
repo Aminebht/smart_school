@@ -4,6 +4,11 @@ import '../core/constants/app_constants.dart';
 class SupabaseService {
   static final SupabaseClient _client = Supabase.instance.client;
   
+  // Add this method to expose the client
+  static SupabaseClient getClient() {
+    return _client;
+  }
+  
   // Initialize Supabase
   static Future<void> initialize() async {
     await Supabase.initialize(
@@ -336,4 +341,6 @@ class SupabaseService {
   static String getCameraFeedUrl(String cameraId) {
     return '$supabaseUrl/edge/v1/camera-stream?camera_id=$cameraId';
   }
+
+  static getCameraDetails(int cameraId) {}
 }

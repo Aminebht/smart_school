@@ -43,4 +43,5 @@ class AppRoutes {
   static const String security = '/security';
   static const String analytics = '/analytics';
   static const String settings = '/settings';
+  static const String camera = '/camera';
 }

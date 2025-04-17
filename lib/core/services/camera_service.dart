@@ -25,13 +25,29 @@ class CameraService {
   // Get cameras for a specific classroom
   Future<List<CameraModel>> getCamerasForClassroom(int classroomId) async {
     try {
+      // If there's a different way cameras are associated with classrooms
+      // (like through a device table or a join table), we need to adjust this query
+      
+      // Option 1: If cameras are linked to classrooms through devices
       final response = await _supabaseClient
           .from('cameras')
-          .select()
-          .eq('classroom_id', classroomId)
+          .select('*, devices!inner(*)')  // Assuming cameras link to devices that link to classrooms
+          .eq('devices.classroom_id', classroomId)
           .order('camera_id');
       
-      return response.map<CameraModel>((camera) => CameraModel.fromJson(camera)).toList();
+      // Option 2: If there's a separate mapping table
+      // final response = await _supabaseClient
+      //     .from('camera_classroom_mappings')
+      //     .select('cameras(*)')
+      //     .eq('classroom_id', classroomId);
+      
+      return response.map<CameraModel>((camera) {
+        // If using Option 1, add classroom_id to the data
+        if (camera['devices'] != null) {
+          camera['classroom_id'] = classroomId; // Add the classroom ID to the data
+        }
+        return CameraModel.fromJson(camera);
+      }).toList();
     } catch (e, stackTrace) {
       _logger.error('Failed to get cameras for classroom: $classroomId', error: e, stackTrace: stackTrace);
       return [];
@@ -68,4 +84,4 @@ class CameraService {
       return false;
     }
   }
-} 
+}
