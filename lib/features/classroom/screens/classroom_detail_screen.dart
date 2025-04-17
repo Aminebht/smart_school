@@ -71,26 +71,6 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
           return Scaffold(
             appBar: AppBar(
               title: Text(classroom.name),
-              actions: [
-                IconButton(
-                  onPressed: () {
-                    provider.loadClassroom(widget.classroomId);
-                  },
-                  icon: const Icon(Icons.refresh),
-                ),
-                if (classroom.hasCamera)
-                  IconButton(
-                    onPressed: () {
-                      // Navigate to camera view
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.cameraView,
-                        arguments: classroom.cameras.first.cameraId.toString(),
-                      );
-                    },
-                    icon: const Icon(Icons.videocam),
-                  ),
-              ],
               bottom: TabBar(
                 controller: _tabController,
                 indicatorColor: AppColors.secondary,

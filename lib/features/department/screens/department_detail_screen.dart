@@ -59,14 +59,6 @@ class _DepartmentDetailScreenState extends State<DepartmentDetailScreen> {
           return Scaffold(
             appBar: AppBar(
               title: Text(department.name),
-              actions: [
-                IconButton(
-                  onPressed: () {
-                    provider.loadDepartment(widget.departmentId);
-                  },
-                  icon: const Icon(Icons.refresh),
-                ),
-              ],
             ),
             body: RefreshIndicator(
               onRefresh: () => provider.loadDepartment(widget.departmentId),

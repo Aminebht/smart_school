@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_school/features/department/screens/department_detail_screen.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/utils/app_utils.dart';
@@ -27,21 +28,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Dashboard'),
-          actions: [
-            IconButton(
-              onPressed: () {
-                // TODO: Navigate to settings screen
-              },
-              icon: const Icon(Icons.settings),
-            ),
-            IconButton(
-              onPressed: () {
-                authProvider.signOut();
-                Navigator.pushReplacementNamed(context, AppRoutes.login);
-              },
-              icon: const Icon(Icons.logout),
-            ),
-          ],
         ),
         drawer: _buildDrawer(context, user),
         body: Consumer<DashboardProvider>(
@@ -202,11 +188,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               return DepartmentCard(
                 department: departments[index],
                 onTap: () {
-                  Navigator.pushNamed(
-                    context, 
-                    AppRoutes.department,
-                    arguments: departments[index].departmentId.toString(),
-                  );
+                 Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DepartmentDetailScreen(
+                      departmentId: departments[index].departmentId.toString(),
+                    ),
+                  ),
+                );
                 },
               );
             },
