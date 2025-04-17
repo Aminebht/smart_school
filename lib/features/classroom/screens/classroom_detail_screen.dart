@@ -200,6 +200,15 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
       }
     }
 
+    if (latestReadings.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(16),
+        child: Center(
+          child: Text('No sensor data available'),
+        ),
+      );
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -243,7 +252,15 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
 
   Widget _buildDevicesTab(ClassroomProvider provider) {
     final classroom = provider.classroom!;
-    final devices = [...classroom.sensors, ...classroom.actuators];
+    final List<dynamic> devices = [];
+    
+    if (classroom.sensors.isNotEmpty) {
+      devices.addAll(classroom.sensors);
+    }
+    
+    if (classroom.actuators.isNotEmpty) {
+      devices.addAll(classroom.actuators);
+    }
     
     if (devices.isEmpty) {
       return const Center(
@@ -284,7 +301,17 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
     
     if (sensorTypes.isEmpty) {
       return const Center(
-        child: Text('No sensor data available'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.sensors_off, size: 48, color: AppColors.textSecondary),
+            SizedBox(height: 16),
+            Text(
+              'No sensor data available', 
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ],
+        ),
       );
     }
 

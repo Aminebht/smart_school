@@ -36,45 +36,140 @@ class ClassroomModel {
     this.sensorReadings = const [],
     this.status = DeviceStatus.normal,
   });
+  @override
+  String toString() {
+    return 'ClassroomModel('
+        'classroomId: $classroomId, '
+        'departmentId: $departmentId, '
+        'name: $name, '
+        'capacity: $capacity, '
+        'createdAt: $createdAt, '
+        'updatedAt: $updatedAt, '
+        'devices: $devices, '
+        'sensors: $sensors, '
+        'actuators: $actuators, '
+        'cameras: $cameras, '
+        'sensorReadings: $sensorReadings, '
+        'status: $status'
+        ')';
+  }
 
   factory ClassroomModel.fromJson(Map<String, dynamic> json) {
+    print('🔄 Converting classroom JSON to model');
+    print('🔑 JSON keys: ${json.keys.toList()}');
+    
     // Parse devices if present
     List<DeviceModel> devicesList = [];
     if (json['devices'] != null) {
+      print('📱 Devices found: ${json['devices'].length}');
       if (json['devices'] is List) {
-        devicesList = (json['devices'] as List)
-            .map((deviceJson) => DeviceModel.fromJson(deviceJson))
-            .toList();
+        try {
+          devicesList = (json['devices'] as List)
+              .map((deviceJson) => DeviceModel.fromJson(deviceJson))
+              .toList();
+          print('✅ Devices parsed successfully: ${devicesList.length}');
+        } catch (e) {
+          print('❌ Error parsing devices: $e');
+        }
       }
+    } else {
+      print('⚠️ No devices found in JSON');
     }
 
     // Parse sensors if present
     List<SensorModel> sensorsList = [];
+    if (json['sensors'] != null) {
+      print('📡 Sensors found: ${json['sensors'].length}');
+      if (json['sensors'] is List) {
+        try {
+          sensorsList = (json['sensors'] as List)
+              .map((sensorJson) {
+                print('🔍 Parsing sensor: $sensorJson');
+                return SensorModel.fromJson(sensorJson);
+              })
+              .toList();
+          print('✅ Sensors parsed successfully: ${sensorsList.length}');
+        } catch (e) {
+          print('❌ Error parsing sensors: $e');
+          print('❌ Stack trace: ${StackTrace.current}');
+        }
+      }
+    } else {
+      print('⚠️ No sensors found in JSON');
+    }
+    
     List<ActuatorModel> actuatorsList = [];
+    if (json['actuators'] != null) {
+      print('🎮 Actuators found: ${json['actuators'].length}');
+      if (json['actuators'] is List) {
+        try {
+          actuatorsList = (json['actuators'] as List)
+              .map((actuatorJson) => ActuatorModel.fromJson(actuatorJson))
+              .toList();
+          print('✅ Actuators parsed successfully: ${actuatorsList.length}');
+        } catch (e) {
+          print('❌ Error parsing actuators: $e');
+        }
+      }
+    } else {
+      print('⚠️ No actuators found in JSON');
+    }
+    
     List<CameraModel> camerasList = [];
+    if (json['cameras'] != null) {
+      print('📷 Cameras found: ${json['cameras'].length}');
+      if (json['cameras'] is List) {
+        try {
+          camerasList = (json['cameras'] as List)
+              .map((cameraJson) => CameraModel.fromJson(cameraJson))
+              .toList();
+          print('✅ Cameras parsed successfully: ${camerasList.length}');
+        } catch (e) {
+          print('❌ Error parsing cameras: $e');
+        }
+      }
+    } else {
+      print('⚠️ No cameras found in JSON');
+    }
     
     // Parse sensor readings if present
     List<SensorReadingModel> sensorReadingsList = [];
     if (json['sensor_readings'] != null) {
+      print('📊 Sensor readings found: ${json['sensor_readings'].length}');
       if (json['sensor_readings'] is List) {
-        sensorReadingsList = (json['sensor_readings'] as List)
-            .map((readingJson) => SensorReadingModel.fromJson(readingJson))
-            .toList();
+        try {
+          sensorReadingsList = (json['sensor_readings'] as List)
+              .map((readingJson) {
+                print('🔍 Parsing sensor reading: $readingJson');
+                var reading = SensorReadingModel.fromJson(readingJson);
+                print('✅ Parsed to: $reading');
+                return reading;
+              })
+              .toList();
+          print('✅ Sensor readings parsed successfully: ${sensorReadingsList.length}');
+        } catch (e) {
+          print('❌ Error parsing sensor readings: $e');
+          print('❌ Stack trace: ${StackTrace.current}');
+        }
       }
+    } else {
+      print('⚠️ No sensor readings found in JSON');
     }
 
     // Determine status from sensor readings or provided status
     DeviceStatus status = DeviceStatus.normal;
     if (json['status'] != null) {
-      switch (json['status']) {
-        case 'warning':
-          status = DeviceStatus.warning;
-          break;
-        case 'critical':
-          status = DeviceStatus.critical;
-          break;
-        default:
-          status = DeviceStatus.normal;
+      if (json['status'] is String) {
+        switch (json['status']) {
+          case 'warning':
+            status = DeviceStatus.warning;
+            break;
+          case 'critical':
+            status = DeviceStatus.critical;
+            break;
+          default:
+            status = DeviceStatus.normal;
+        }
       }
     } else {
       // Determine status from sensor readings if available
@@ -89,12 +184,12 @@ class ClassroomModel {
     }
 
     return ClassroomModel(
-      classroomId: json['classroom_id'],
-      departmentId: json['department_id'],
-      name: json['name'],
+      classroomId: json['classroom_id'] ?? 0,
+      departmentId: json['department_id'] ?? 0,
+      name: json['name'] ?? 'Unknown Classroom',
       capacity: json['capacity'] ?? 0,
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : DateTime.now(),
       devices: devicesList,
       sensors: sensorsList,
       actuators: actuatorsList,
@@ -161,4 +256,4 @@ class ClassroomModel {
         return AppColors.error;
     }
   }
-} 
+}

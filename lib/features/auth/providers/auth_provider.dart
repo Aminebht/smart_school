@@ -40,9 +40,9 @@ class AuthProvider extends ChangeNotifier {
       final user = SupabaseService.getCurrentUser();
       if (user != null) {
         final response = await Supabase.instance.client
-            .from('profiles')
+            .from('users')
             .select()
-            .eq('id', user.id)
+            .eq('user_id', user.id)
             .single();
         
         _user = UserModel.fromJson({
@@ -50,8 +50,6 @@ class AuthProvider extends ChangeNotifier {
           'email': user.email ?? '',
           'name': response['name'] ?? '',
           'role': response['role'] ?? 'teacher',
-          'avatar_url': response['avatar_url'],
-          'is_active': response['is_active'] ?? true,
         });
         
         notifyListeners();

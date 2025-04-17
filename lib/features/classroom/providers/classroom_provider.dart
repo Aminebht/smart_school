@@ -37,19 +37,46 @@ class ClassroomProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      print('🔄 Loading classroom with ID: $classroomId');
       final classroomJson = await SupabaseService.getClassroomDetails(classroomId);
-      _classroom = ClassroomModel.fromJson(classroomJson);
+      print('✅ Classroom JSON data received');
+      
+      try {
+        _classroom = ClassroomModel.fromJson(classroomJson);
+        print('✅ Classroom model created successfully');
+        print('📋 Classroom: $_classroom');
+      } catch (e) {
+        print('❌ Error creating ClassroomModel: $e');
+        print('❌ Stack trace: ${StackTrace.current}');
+        _errorMessage = 'Failed to parse classroom data: ${e.toString()}';
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
       
       // If we have sensor readings, set the initial selected sensor type
       final sensorTypes = getAvailableSensorTypes();
+      print('📊 Available sensor types: $sensorTypes');
+      
       if (sensorTypes.isNotEmpty) {
         _selectedSensorType = sensorTypes.first;
-        await loadSensorData(classroomId, _selectedSensorType!);
+        print('📊 Selected sensor type: $_selectedSensorType');
+        
+        try {
+          await loadSensorData(classroomId, _selectedSensorType!);
+          print('✅ Sensor data loaded successfully');
+        } catch (e) {
+          print('❌ Error loading sensor data: $e');
+          _errorMessage = 'Failed to load sensor data: ${e.toString()}';
+          // Continue with classroom data even if sensor data fails
+        }
       }
       
       _isLoading = false;
       notifyListeners();
     } catch (e) {
+      print('❌ Error in loadClassroom: $e');
+      print('❌ Stack trace: ${StackTrace.current}');
       _isLoading = false;
       _errorMessage = 'Failed to load classroom: ${e.toString()}';
       notifyListeners();
@@ -59,14 +86,19 @@ class ClassroomProvider extends ChangeNotifier {
   // Get all available sensor types from readings
   List<String> getAvailableSensorTypes() {
     if (_classroom == null || _classroom!.sensorReadings.isEmpty) {
+      print('⚠️ No classroom or sensor readings available');
       return [];
     }
     
     final types = <String>{};
+    print('🔍 Getting sensor types from ${_classroom!.sensorReadings.length} readings');
+    
     for (var reading in _classroom!.sensorReadings) {
+      print('📊 Reading sensor type: ${reading.sensorType} (${reading.sensorType.runtimeType})');
       types.add(reading.sensorType);
     }
     
+    print('✅ Found ${types.length} unique sensor types: $types');
     return types.toList();
   }
 
@@ -161,4 +193,4 @@ class ClassroomProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
   }
-} 
+}
