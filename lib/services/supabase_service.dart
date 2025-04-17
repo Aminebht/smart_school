@@ -2,43 +2,45 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/constants/app_constants.dart';
 
 class SupabaseService {
-  static final SupabaseClient _client = Supabase.instance.client;
+  // Add this static client property
+  static late SupabaseClient client;
   
-  // Add this method to expose the client
-  static SupabaseClient getClient() {
-    return _client;
-  }
-  
-  // Initialize Supabase
   static Future<void> initialize() async {
     await Supabase.initialize(
       url: supabaseUrl,
       anonKey: supabaseAnonKey,
     );
+    
+    // Initialize the client
+    client = Supabase.instance.client;
+  }
+
+    static SupabaseClient getClient() {
+    return client;
   }
   
   // Authentication methods
-  static Future<AuthResponse> signIn(String email, String password) async {
-    return await _client.auth.signInWithPassword(
+  static Future<void> signIn(String email, String password) async {
+    await client.auth.signInWithPassword(
       email: email,
       password: password,
     );
   }
   
   static Future<void> signOut() async {
-    await _client.auth.signOut();
+    await client.auth.signOut();
   }
   
   static Future<void> resetPassword(String email) async {
-    await _client.auth.resetPasswordForEmail(email);
+    await client.auth.resetPasswordForEmail(email);
   }
   
   static User? getCurrentUser() {
-    return _client.auth.currentUser;
+    return client.auth.currentUser;
   }
   
   static Stream<AuthState> authStateChanges() {
-    return _client.auth.onAuthStateChange;
+    return client.auth.onAuthStateChange;
   }
   
   // Sensor data methods
@@ -70,7 +72,7 @@ class SupabaseService {
       }
       
       // Get readings for these sensors
-      final readings = await _client
+      final readings = await client
           .from('sensor_readings')
           .select('*')
           .filter('sensor_id', 'in', sensorIds)
@@ -103,7 +105,7 @@ class SupabaseService {
   }
   
   static Stream<List<Map<String, dynamic>>> streamSensorReadings(String classroomId) {
-    return _client
+    return client
         .from('sensor_readings')
         .stream(primaryKey: ['id'])
         .eq('classroom_id', classroomId);
@@ -114,21 +116,21 @@ class SupabaseService {
     // Convert boolean to the expected string status value
     final String statusValue = state ? 'online' : 'offline';
     
-    await _client
+    await client
         .from('devices')
         .update({'status': statusValue})  // Use string value instead of boolean
         .eq('device_id', deviceId);
   }
   
   static Future<void> updateDeviceValue(String deviceId, double value) async {
-    await _client
+    await client
         .from('devices')
         .update({'value': value})
         .eq('device_id', deviceId);
   }
   
   static Future<void> toggleActuator(String actuatorId, bool isOn) async {
-    await _client
+    await client
         .from('actuators')
         .update({
           'current_state': isOn ? 'on' : 'off',  // Store string values
@@ -155,7 +157,7 @@ class SupabaseService {
   
   // Department and classroom methods
   static Future<List<Map<String, dynamic>>> getDepartments() async {
-    final response = await _client
+    final response = await client
         .from('departments')
         .select('*');
     
@@ -163,7 +165,7 @@ class SupabaseService {
   }
   
   static Future<List<Map<String, dynamic>>> getClassroomsByDepartment(String departmentId) async {
-    final response = await _client
+    final response = await client
         .from('classrooms')
         .select('*')
         .eq('department_id', departmentId);
@@ -176,7 +178,7 @@ class SupabaseService {
       print('🔍 Fetching classroom details for ID: $classroomId');
       
       // Get the classroom base details
-      final classroom = await _client
+      final classroom = await client
           .from('classrooms')
           .select('*')
           .eq('classroom_id', classroomId)
@@ -185,7 +187,7 @@ class SupabaseService {
       print('📊 Base classroom data: $classroom');
       
       // Get the devices for the classroom
-      final devices = await _client
+      final devices = await client
           .from('devices')
           .select('*')
           .eq('classroom_id', classroomId);
@@ -200,7 +202,7 @@ class SupabaseService {
       List<Map<String, dynamic>> sensors = [];
       if (deviceIds.isNotEmpty) {
         try {
-          sensors = await _client
+          sensors = await client
               .from('sensors')
               .select('*')
               .filter('device_id', 'in', deviceIds);
@@ -218,7 +220,7 @@ class SupabaseService {
       List<Map<String, dynamic>> actuators = [];
       if (deviceIds.isNotEmpty) {
         try {
-          actuators = await _client
+          actuators = await client
               .from('actuators')
               .select('*')
               .filter('device_id', 'in', deviceIds);
@@ -231,7 +233,7 @@ class SupabaseService {
       List<Map<String, dynamic>> cameras = [];
       if (deviceIds.isNotEmpty) {
         try {
-          cameras = await _client
+          cameras = await client
               .from('cameras')
               .select('*')
               .filter('device_id', 'in', deviceIds);
@@ -272,7 +274,7 @@ class SupabaseService {
       List<Map<String, dynamic>> readings = [];
       if (sensorIds.isNotEmpty) {
         try {
-          readings = await _client
+          readings = await client
               .from('sensor_readings')
               .select('*')
               .filter('sensor_id', 'in', sensorIds)
@@ -322,7 +324,7 @@ class SupabaseService {
   
   // Alert methods
   static Future<List<Map<String, dynamic>>> getAlerts({int limit = 20}) async {
-    final response = await _client
+    final response = await client
         .from('alerts')
         .select('*')
         .order('timestamp', ascending: false)
@@ -332,7 +334,7 @@ class SupabaseService {
   }
   
   static Stream<List<Map<String, dynamic>>> streamAlerts() {
-    return _client
+    return client
         .from('alerts')
         .stream(primaryKey: ['id']);
   }

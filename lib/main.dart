@@ -21,17 +21,23 @@ void main() async {
   // Initialize Supabase
   await SupabaseService.initialize();
   
-  runApp(const SmartSchoolApp());
+  // Create and initialize auth provider first
+  final authProvider = AuthProvider();
+  await authProvider.initializeAuth();
+  
+  runApp(SmartSchoolApp(authProvider: authProvider));
 }
 
 class SmartSchoolApp extends StatelessWidget {
-  const SmartSchoolApp({super.key});
+  final AuthProvider authProvider;
+  
+  const SmartSchoolApp({super.key, required this.authProvider});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         // Add other providers here
       ],
