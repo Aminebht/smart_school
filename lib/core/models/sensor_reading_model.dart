@@ -21,29 +21,12 @@ class SensorReadingModel {
   factory SensorReadingModel.fromJson(Map<String, dynamic> json) {
     print('🔄 Converting sensor reading JSON to model: $json');
     
-    // Debug each field individually
-    final readingId = json['reading_id'];
-    final sensorId = json['sensor_id'];
-    final value = json['value'];
-    final timestamp = json['timestamp'];
-    final sensorType = json['sensor_type'];
-    
-    print('🆔 readingId: $readingId (${readingId.runtimeType})');
-    print('🆔 sensorId: $sensorId (${sensorId.runtimeType})');
-    print('📊 value: $value (${value.runtimeType})');
-    print('⏰ timestamp: $timestamp (${timestamp.runtimeType})');
-    print('📋 sensorType: $sensorType (${sensorType.runtimeType})');
-    
-    if (sensorType == null) {
-      print('⚠️ Warning: sensorType is null!');
-    }
-    
     return SensorReadingModel(
-      readingId: readingId ?? 0,
-      sensorId: sensorId ?? 0,
-      value: (value ?? 0).toDouble(),
-      timestamp: timestamp != null ? DateTime.parse(timestamp) : DateTime.now(),
-      sensorType: sensorType ?? 'unknown',  // Replace null with 'unknown'
+      readingId: json['reading_id'] ?? 0,
+      sensorId: json['sensor_id'] ?? 0,
+      value: (json['value'] ?? 0).toDouble(),
+      timestamp: json['timestamp'] != null ? DateTime.parse(json['timestamp']) : DateTime.now(),
+      sensorType: json['sensor_type'] ?? 'unknown',  // Replace null with 'unknown'
     );
   }
 
@@ -96,6 +79,14 @@ class SensorReadingModel {
         return AppColors.warning;
       case DeviceStatus.critical:
         return AppColors.error;
+      case DeviceStatus.offline:
+        return AppColors.error;
+      case DeviceStatus.maintenance:
+        return AppColors.warning;
+      case DeviceStatus.online:
+        return AppColors.success;
+      default:
+        return AppColors.success; // Fallback color
     }
   }
 

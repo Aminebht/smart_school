@@ -247,13 +247,21 @@ class ClassroomModel {
 
   // Get overall status color
   Color get statusColor {
-    switch (status) {
+     switch (status) {
       case DeviceStatus.normal:
         return AppColors.success;
       case DeviceStatus.warning:
         return AppColors.warning;
       case DeviceStatus.critical:
         return AppColors.error;
+      case DeviceStatus.offline:
+        return AppColors.error;
+      case DeviceStatus.maintenance:
+        return AppColors.warning;
+      case DeviceStatus.online:
+        return AppColors.success;
+      default:
+        return AppColors.success; // Fallback color
     }
   }
 }

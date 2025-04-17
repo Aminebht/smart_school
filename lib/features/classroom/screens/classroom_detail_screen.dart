@@ -276,17 +276,18 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
         final device = devices[index];
         return DeviceControlWidget(
           device: device,
+          sensorReadings: provider.classroom!.sensorReadings,
           onToggle: (isOn) {
-            if (device is SensorModel) {
-              provider.toggleDevice(device.sensorId.toString(), isOn);
-            } else if (device is ActuatorModel) {
+            // Only handle toggling for actuators
+            if (device is ActuatorModel) {
               provider.toggleDevice(device.actuatorId.toString(), isOn);
             }
+            // Do nothing for sensors
           },
           onValueChanged: (value) {
-            if (device is SensorModel) {
-              provider.updateDeviceValue(device.sensorId.toString(), value);
-            } else if (device is ActuatorModel) {
+            // Only for adjustable actuators
+            if (device is ActuatorModel && 
+                (device.actuatorType == 'light' || device.actuatorType == 'fan')) {
               provider.updateDeviceValue(device.actuatorId.toString(), value);
             }
           },
@@ -443,4 +444,4 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
         return type.substring(0, 1).toUpperCase() + type.substring(1);
     }
   }
-} 
+}

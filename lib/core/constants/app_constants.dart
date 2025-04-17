@@ -26,6 +26,9 @@ enum DeviceStatus {
   normal,
   warning,
   critical,
+  online,
+  offline,
+  maintenance
 }
 
 // Routes
@@ -40,4 +43,4 @@ class AppRoutes {
   static const String security = '/security';
   static const String analytics = '/analytics';
   static const String settings = '/settings';
-} 
+}

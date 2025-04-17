@@ -3,52 +3,36 @@ import '../constants/app_constants.dart';
 class ActuatorModel {
   final int actuatorId;
   final int deviceId;
-  final int? classroomId;
-  final String name;
-  final String type;
-  final bool isOn;
+  final String actuatorType;
+  final String controlType;
+  final dynamic currentState;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DeviceStatus status;
+  final String name; // Added name field
 
   ActuatorModel({
     required this.actuatorId,
     required this.deviceId,
-    this.classroomId,
-    required this.name,
-    required this.type,
-    required this.isOn,
+    required this.actuatorType,
+    required this.controlType,
+    this.currentState,
     required this.createdAt,
     required this.updatedAt,
     this.status = DeviceStatus.normal,
+    required this.name, // Added required name parameter
   });
 
   factory ActuatorModel.fromJson(Map<String, dynamic> json) {
-    // Determine status from provided status or defaults to normal
-    DeviceStatus status = DeviceStatus.normal;
-    if (json['status'] != null) {
-      switch (json['status']) {
-        case 'warning':
-          status = DeviceStatus.warning;
-          break;
-        case 'critical':
-          status = DeviceStatus.critical;
-          break;
-        default:
-          status = DeviceStatus.normal;
-      }
-    }
-
     return ActuatorModel(
-      actuatorId: json['actuator_id'],
-      deviceId: json['device_id'],
-      classroomId: json['classroom_id'],
-      name: json['name'],
-      type: json['type'],
-      isOn: json['is_on'] ?? false,
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
-      status: status,
+      actuatorId: json['actuator_id'] ?? 0,
+      deviceId: json['device_id'] ?? 0,
+      actuatorType: json['actuator_type'] ?? 'unknown',
+      controlType: json['control_type'] ?? 'binary',
+      currentState: json['current_state'], // This can be null
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : DateTime.now(),
+      name: json['name'] ?? 'Unknown Actuator', // Added name with default value
     );
   }
 
@@ -68,13 +52,12 @@ class ActuatorModel {
     return {
       'actuator_id': actuatorId,
       'device_id': deviceId,
-      'classroom_id': classroomId,
-      'name': name,
-      'type': type,
-      'is_on': isOn,
+      'actuator_type': actuatorType,
+      'control_type': controlType,
+      'current_state': currentState,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
-      'status': statusStr,
+      'name': name, // Added name to JSON
     };
   }
-} 
+}

@@ -32,35 +32,19 @@ class SensorModel {
   });
 
   factory SensorModel.fromJson(Map<String, dynamic> json) {
-    // Determine status from provided status or defaults to normal
-    DeviceStatus status = DeviceStatus.normal;
-    if (json['status'] != null) {
-      switch (json['status']) {
-        case 'warning':
-          status = DeviceStatus.warning;
-          break;
-        case 'critical':
-          status = DeviceStatus.critical;
-          break;
-        default:
-          status = DeviceStatus.normal;
-      }
-    }
-
     return SensorModel(
-      sensorId: json['sensor_id'],
-      deviceId: json['device_id'],
+      sensorId: json['sensor_id'] ?? 0,
+      deviceId: json['device_id'] ?? 0,
       classroomId: json['classroom_id'],
-      name: json['name'],
-      type: json['type'],
-      unit: json['unit'],
-      minValue: json['min_value']?.toDouble() ?? 0.0,
-      maxValue: json['max_value']?.toDouble() ?? 100.0,
+      name: json['name'] ?? 'unknown',
+      type: json['sensor_type'] ?? 'unknown',
+      unit: json['measurement_unit'] ?? '',
+      minValue: (json['min_threshold'] ?? 0).toDouble(),
+      maxValue: (json['max_threshold'] ?? 0).toDouble(),
       warningThreshold: json['warning_threshold']?.toDouble() ?? 70.0,
       criticalThreshold: json['critical_threshold']?.toDouble() ?? 90.0,
-      createdAt: DateTime.parse(json['created_at']),
-      updatedAt: DateTime.parse(json['updated_at']),
-      status: status,
+      createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
+      updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : DateTime.now(),
     );
   }
 
@@ -93,4 +77,4 @@ class SensorModel {
       'status': statusStr,
     };
   }
-} 
+}

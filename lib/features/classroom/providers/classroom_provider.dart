@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/models/classroom_model.dart';
+import '../../../core/models/sensor_model.dart'; // Add this for SensorModel
+import '../../../core/models/actuator_model.dart'; // Add this for ActuatorModel
 import '../../../core/models/sensor_reading_model.dart';
+import '../../../core/constants/app_constants.dart'; // Add this for DeviceStatus enum
 import '../../../services/supabase_service.dart';
 
 class ClassroomProvider extends ChangeNotifier {
@@ -140,13 +143,58 @@ class ClassroomProvider extends ChangeNotifier {
   // Toggle device state (on/off)
   Future<void> toggleDevice(String deviceId, bool isOn) async {
     try {
-      await SupabaseService.updateDeviceState(deviceId, isOn);
-      
-      // Update the local state if successful
+      // Only toggle actuators
+      String actuatorId = '';
       if (_classroom != null) {
-        // Find the device and update its state
-        // This would need to be implemented based on whether it's a sensor, actuator, etc.
-        notifyListeners();
+        // First check if this is an actuator by deviceId
+        for (var actuator in _classroom!.actuators) {
+          if (actuator.deviceId.toString() == deviceId) {
+            actuatorId = actuator.actuatorId.toString();
+            break;
+          }
+        }
+        
+        // Also check if the ID itself is an actuatorId
+        if (actuatorId.isEmpty) {
+          for (var actuator in _classroom!.actuators) {
+            if (actuator.actuatorId.toString() == deviceId) {
+              actuatorId = actuator.actuatorId.toString();
+              deviceId = actuator.deviceId.toString();
+              break;
+            }
+          }
+        }
+        
+        // If an actuator was found
+        if (actuatorId.isNotEmpty) {
+          // Update both device and actuator
+          await SupabaseService.toggleDeviceAndActuator(deviceId, actuatorId, isOn);
+          
+          // Update the local state
+          for (var i = 0; i < _classroom!.actuators.length; i++) {
+            if (_classroom!.actuators[i].actuatorId.toString() == actuatorId) {
+              // Update the actuator status
+              final updatedActuator = _classroom!.actuators[i];
+              _classroom!.actuators[i] = ActuatorModel(
+                actuatorId: updatedActuator.actuatorId,
+                deviceId: updatedActuator.deviceId,
+                actuatorType: updatedActuator.actuatorType,
+                controlType: updatedActuator.controlType,
+                currentState: isOn ? "on" : "off", // Update current state
+                createdAt: updatedActuator.createdAt,
+                updatedAt: updatedActuator.updatedAt,
+                status: isOn ? DeviceStatus.online : DeviceStatus.offline,
+                name: updatedActuator.name,
+              );
+              notifyListeners();
+              return;
+            }
+          }
+        } else {
+          // Not an actuator, don't toggle
+          _errorMessage = 'Only actuators can be toggled';
+          notifyListeners();
+        }
       }
     } catch (e) {
       _errorMessage = 'Failed to toggle device: ${e.toString()}';

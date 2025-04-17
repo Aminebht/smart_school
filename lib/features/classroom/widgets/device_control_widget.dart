@@ -1,201 +1,153 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/models/device_model.dart';
 import '../../../core/models/actuator_model.dart';
 import '../../../core/models/sensor_model.dart';
+import '../../../core/models/sensor_reading_model.dart';
+import '../../../core/models/classroom_model.dart';
 
 class DeviceControlWidget extends StatelessWidget {
-  final dynamic device; // Can be DeviceModel, SensorModel, or ActuatorModel
-  final Function(bool)? onToggle;
+  final dynamic device; // Can be SensorModel or ActuatorModel
+  final Function(bool) onToggle;
   final Function(double)? onValueChanged;
+  final List<SensorReadingModel>? sensorReadings;
 
   const DeviceControlWidget({
-    super.key,
+    Key? key,
     required this.device,
-    this.onToggle,
+    required this.onToggle,
     this.onValueChanged,
-  });
+    this.sensorReadings,
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final isDevice = device is DeviceModel;
-    final isSensor = device is SensorModel;
-    final isActuator = device is ActuatorModel;
+    if (device is ActuatorModel) {
+      return _buildActuatorControl(context, device as ActuatorModel);
+    } else if (device is SensorModel) {
+      return _buildSensorDisplay(context, device as SensorModel);
+    } else {
+      return const ListTile(
+        title: Text('Unknown Device'),
+        subtitle: Text('Type: unknown'),
+      );
+    }
+  }
+
+  Widget _buildActuatorControl(BuildContext context, ActuatorModel actuator) {
+    final bool isOnline = actuator.status == DeviceStatus.online;
     
-    // Get common properties based on device type
-    final String name = isDevice ? device.name : 
-                        isSensor ? device.name : 
-                        isActuator ? device.name : 'Unknown Device';
-    
-    final String type = isDevice ? device.deviceType : 
-                       isSensor ? device.type : 
-                       isActuator ? device.type : 'unknown';
-    
-    final bool isToggleable = isDevice ? device.isToggleable : 
-                             isActuator ? true : false;
-    
-    final bool isAdjustable = isDevice ? device.isAdjustable :
-                              isActuator ? device.type == 'fan' || device.type == 'ac' : false;
-    
-    final bool isOn = isDevice ? device.isOnline : 
-                     isActuator ? device.isOn : false;
-    
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Device name and icon
-            Row(
-              children: [
-                Icon(
-                  _getDeviceIcon(type, isOn),
-                  size: 24,
-                  color: isOn ? AppColors.primary : AppColors.textSecondary,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.text,
-                        ),
-                      ),
-                      Text(
-                        _getDeviceTypeDisplayName(type),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                // Toggle switch for controllable devices
-                if (isToggleable && onToggle != null)
-                  Switch(
-                    value: isOn,
-                    onChanged: onToggle,
-                    activeColor: AppColors.primary,
-                  ),
-              ],
+    return ListTile(
+      leading: Icon(
+        _getIconForType(actuator.actuatorType),
+        color: isOnline ? Colors.green : Colors.grey,
+      ),
+      title: Text(
+        actuator.name,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Type: ${actuator.actuatorType}'),
+          Text(
+            'Status: ${isOnline ? "On" : "Off"}',
+            style: TextStyle(
+              color: isOnline ? Colors.green : Colors.grey,
             ),
-            
-            // Slider for adjustable devices (like fan speed, thermostat)
-            if (isAdjustable && onValueChanged != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Intensity',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        Text(
-                          '${_getSliderValue()}%',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.text,
-                          ),
-                        ),
-                      ],
-                    ),
-                    Slider(
-                      value: _getSliderValue(),
-                      min: 0,
-                      max: 100,
-                      divisions: 10,
-                      activeColor: AppColors.primary,
-                      inactiveColor: AppColors.primary.withOpacity(0.3),
-                      onChanged: isOn ? (value) {
-                        onValueChanged!(value);
-                      } : null,
-                    ),
-                  ],
-                ),
-              ),
-          ],
-        ),
+          ),
+        ],
+      ),
+      trailing: Switch(
+        value: isOnline,
+        activeColor: Colors.green,
+        onChanged: onToggle,
       ),
     );
   }
 
-  IconData _getDeviceIcon(String type, bool isOn) {
-    switch (type) {
-      case 'light':
-        return isOn ? Icons.lightbulb : Icons.lightbulb_outline;
-      case 'fan':
-        return isOn ? Icons.air : Icons.air_outlined;
-      case 'door':
-        return isOn ? Icons.meeting_room : Icons.meeting_room_outlined;
-      case 'window':
-        return isOn ? Icons.window : Icons.window_outlined;
-      case 'ac':
-        return isOn ? Icons.ac_unit : Icons.ac_unit_outlined;
+  Widget _buildSensorDisplay(BuildContext context, SensorModel sensor) {
+    final bool isOnline = sensor.status == DeviceStatus.online;
+    String? latestReading;
+    
+    // Find the latest reading for this sensor
+    if (sensorReadings != null) {
+      final matchingReadings = sensorReadings!
+          .where((reading) => reading.sensorId == sensor.sensorId)
+          .toList();
+      
+      if (matchingReadings.isNotEmpty) {
+        // Sort by timestamp descending and get the latest
+        matchingReadings.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        final latest = matchingReadings.first;
+        latestReading = '${latest.value} ${sensor.unit}';
+      }
+    }
+
+    return ListTile(
+      leading: Icon(
+        _getIconForType(sensor.type),
+        color: isOnline ? Colors.blue : Colors.grey,
+      ),
+      title: Text(
+        sensor.name,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Type: ${sensor.type}'),
+          if (latestReading != null)
+            Text(
+              'Reading: $latestReading',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: _getColorForReading(sensor, latestReading),
+              ),
+            ),
+        
+        ],
+      ),
+    );
+  }
+
+  IconData _getIconForType(String type) {
+    switch (type.toLowerCase()) {
       case 'temperature':
         return Icons.thermostat;
       case 'humidity':
         return Icons.water_drop;
       case 'gas':
-        return Icons.cloud;
+        return Icons.air;
       case 'motion':
         return Icons.motion_photos_on;
-      default:
-        return Icons.device_unknown;
-    }
-  }
-
-  String _getDeviceTypeDisplayName(String type) {
-    switch (type) {
       case 'light':
-        return 'Light';
-      case 'fan':
-        return 'Fan';
+        return Icons.lightbulb;
       case 'door':
-        return 'Door';
-      case 'window':
-        return 'Window';
+        return Icons.door_front_door;
+      case 'fan':
+        return Icons.air;
       case 'ac':
-        return 'Air Conditioner';
-      case 'temperature':
-        return 'Temperature Sensor';
-      case 'humidity':
-        return 'Humidity Sensor';
-      case 'gas':
-        return 'Air Quality Sensor';
-      case 'motion':
-        return 'Motion Sensor';
+        return Icons.ac_unit;
       default:
-        return type.substring(0, 1).toUpperCase() + type.substring(1);
+        return Icons.sensors;
     }
   }
 
-  double _getSliderValue() {
-    if (device is DeviceModel && device.isAdjustable) {
-      // For actual implementation, we'd need to get the current value
-      // from the device model and normalize it to 0-100 scale
-      return 50; // Default value for example
-    } else if (device is ActuatorModel && 
-        (device.type == 'fan' || device.type == 'ac')) {
-      // Similar to above, we'd need the actual value
-      return 50; // Default value for example
+  Color _getColorForReading(SensorModel sensor, String? reading) {
+    if (reading == null) return Colors.grey;
+    
+    try {
+      final value = double.parse(reading.split(' ').first);
+      
+      if (value > sensor.maxValue) {
+        return Colors.red;
+      } else if (value < sensor.minValue) {
+        return Colors.orange;
+      } else {
+        return Colors.green;
+      }
+    } catch (e) {
+      return Colors.grey;
     }
-    return 0;
   }
-} 
+}
