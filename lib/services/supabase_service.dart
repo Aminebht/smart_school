@@ -111,6 +111,43 @@ class SupabaseService {
         .eq('classroom_id', classroomId);
   }
   
+  // Get recent sensor readings across all classrooms
+  static Future<List<Map<String, dynamic>>> getRecentSensorReadings({int limit = 100}) async {
+    final client = await getClient();
+    
+    try {
+      // Get the most recent readings, joining with sensors to get sensor types
+      final response = await client
+        .from('sensor_readings')
+        .select('''
+          *,
+          sensors:sensor_id (
+            sensor_id,
+            sensor_type,
+            measurement_unit
+          )
+        ''')
+        .order('timestamp', ascending: false)
+        .limit(limit);
+        
+      // Process the response to flatten the structure
+      return (response as List).map((item) {
+        final sensor = item['sensors'] as Map<String, dynamic>;
+        return {
+          'reading_id': item['reading_id'],
+          'sensor_id': item['sensor_id'],
+          'value': item['value'],
+          'timestamp': item['timestamp'],
+          'sensor_type': sensor['sensor_type'],
+          'unit': sensor['measurement_unit'],
+        };
+      }).toList();
+    } catch (e) {
+      print('Error getting recent sensor readings: $e');
+      return [];
+    }
+  }
+  
   // Device control methods
   static Future<void> updateDeviceState(String deviceId, bool state) async {
     // Convert boolean to the expected string status value
@@ -358,6 +395,77 @@ class SupabaseService {
       print('❌ Error in getClassroomDetails: $e');
       print('❌ Error stack trace: ${StackTrace.current}');
       throw e;
+    }
+  }
+  
+  // Get occupancy data for classrooms
+  static Future<List<Map<String, dynamic>>> getOccupancyData() async {
+    final client = await getClient();
+    
+    try {
+      // Query classrooms with their latest motion sensor readings
+      final classroomsResponse = await client
+        .from('classrooms')
+        .select('classroom_id, name, capacity');
+        
+      List<Map<String, dynamic>> classrooms = List<Map<String, dynamic>>.from(classroomsResponse);
+      List<Map<String, dynamic>> result = [];
+      
+      // For each classroom, determine if it's occupied based on motion sensor readings
+      for (var classroom in classrooms) {
+        // Get the devices associated with this classroom
+        final devicesResponse = await client
+          .from('devices')
+          .select('device_id')
+          .eq('classroom_id', classroom['classroom_id'])
+          .eq('device_type', 'sensor');
+          
+        List<Map<String, dynamic>> devices = List<Map<String, dynamic>>.from(devicesResponse);
+        bool isOccupied = false;
+        
+        for (var device in devices) {
+          // Get any motion sensors for this device
+          final sensorResponse = await client
+            .from('sensors')
+            .select('sensor_id')
+            .eq('device_id', device['device_id'])
+            .eq('sensor_type', 'motion');
+            
+          List<Map<String, dynamic>> motionSensors = List<Map<String, dynamic>>.from(sensorResponse);
+          
+          // Check if any motion sensors detected movement in the last 15 minutes
+          for (var sensor in motionSensors) {
+            final DateTime fifteenMinutesAgo = DateTime.now().subtract(const Duration(minutes: 15));
+            
+            final readingResponse = await client
+              .from('sensor_readings')
+              .select('value')
+              .eq('sensor_id', sensor['sensor_id'])
+              .gt('timestamp', fifteenMinutesAgo.toIso8601String())
+              .eq('value', 1) // Motion detected
+              .limit(1);
+              
+            if ((readingResponse as List).isNotEmpty) {
+              isOccupied = true;
+              break;
+            }
+          }
+          
+          if (isOccupied) break;
+        }
+        
+        result.add({
+          'classroom_id': classroom['classroom_id'],
+          'name': classroom['name'],
+          'capacity': classroom['capacity'],
+          'is_occupied': isOccupied,
+        });
+      }
+      
+      return result;
+    } catch (e) {
+      print('Error getting occupancy data: $e');
+      return [];
     }
   }
   

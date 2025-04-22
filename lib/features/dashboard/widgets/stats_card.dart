@@ -109,12 +109,12 @@ class StatsCardGrid extends StatelessWidget {
             icon: Icons.water_drop,
             color: Colors.blue,
           ),
-        if (stats.containsKey('occupancy_rate'))
+        if (stats.containsKey('air_quality'))
           StatsCard(
-            title: 'Occupancy Rate',
-            value: '${stats['occupancy_rate']!.toStringAsFixed(0)}%',
-            icon: Icons.people,
-            color: Colors.green,
+            title: 'Air Quality',
+            value: '${stats['air_quality']!.toStringAsFixed(1)} ppm',
+            icon: Icons.cloud, // Changed from people to cloud icon
+            color: _getAirQualityColor(stats['air_quality'] ?? 0),
           ),
         if (stats.containsKey('alert_count'))
           StatsCard(
@@ -123,7 +123,20 @@ class StatsCardGrid extends StatelessWidget {
             icon: Icons.warning_amber,
             color: stats['alert_count']! > 0 ? AppColors.warning : AppColors.success,
           ),
+        
       ],
     );
+  }
+
+
+  Color _getAirQualityColor(double value) {
+    // Air quality thresholds (adjust based on your specific measurements)
+    if (value < 500) {
+      return Colors.green; // Good
+    } else if (value < 1000) {
+      return Colors.orange; // Moderate
+    } else {
+      return Colors.red; // Poor
+    }
   }
 }

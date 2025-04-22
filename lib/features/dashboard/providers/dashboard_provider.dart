@@ -68,17 +68,69 @@ class DashboardProvider extends ChangeNotifier {
 
   Future<void> calculateQuickStats() async {
     try {
-      // This would typically involve analyzing sensor data across classrooms
-      // For now, we'll set placeholder values
+      // Get all recent sensor readings across classrooms
+      final sensorReadingsJson = await SupabaseService.getRecentSensorReadings(limit: 100);
+      final List<SensorReadingModel> readings = sensorReadingsJson
+          .map((json) => SensorReadingModel.fromJson(json))
+          .toList();
+
+      // Calculate temperature average
+      final temperatureReadings = readings.where((reading) => 
+          reading.sensorType.toLowerCase() == 'temperature').toList();
+      double avgTemperature = 0;
+      if (temperatureReadings.isNotEmpty) {
+        avgTemperature = temperatureReadings.map((r) => r.value).reduce((a, b) => a + b) / 
+            temperatureReadings.length;
+      }
+
+      // Calculate humidity average
+      final humidityReadings = readings.where((reading) => 
+          reading.sensorType.toLowerCase() == 'humidity').toList();
+      double avgHumidity = 0;
+      if (humidityReadings.isNotEmpty) {
+        avgHumidity = humidityReadings.map((r) => r.value).reduce((a, b) => a + b) / 
+            humidityReadings.length;
+      }
+
+      // Calculate air quality (gas) average - replacing occupancy rate
+      final gasReadings = readings.where((reading) => 
+          reading.sensorType.toLowerCase() == 'gas').toList();
+      double avgAirQuality = 0;
+      if (gasReadings.isNotEmpty) {
+        avgAirQuality = gasReadings.map((r) => r.value).reduce((a, b) => a + b) / 
+            gasReadings.length;
+      }
+
+      // Count unresolved alerts
+      int alertCount = 0;
+      if (_recentAlerts.isNotEmpty) {
+        // If 'resolved' property exists in your AlertModel
+        if (_recentAlerts[0].toString().contains('resolved')) {
+          alertCount = _recentAlerts.where((alert) => alert.resolved == false).length;
+        } else {
+          // If the property doesn't exist, count all alerts
+          alertCount = _recentAlerts.length;
+        }
+      }
+
+      // Update quick stats
       _quickStats = {
-        'average_temperature': 24.5,
-        'average_humidity': 45.8,
-        'occupancy_rate': 65.0,
-        'alert_count': _recentAlerts.length.toDouble(),
+        'average_temperature': double.parse(avgTemperature.toStringAsFixed(1)),
+        'average_humidity': double.parse(avgHumidity.toStringAsFixed(1)),
+        'air_quality': double.parse(avgAirQuality.toStringAsFixed(1)),
+        'alert_count': alertCount.toDouble(),
       };
+
     } catch (e) {
       _errorMessage = 'Failed to calculate stats: ${e.toString()}';
-      throw e;
+      // Initialize with default values if calculation fails
+      _quickStats = {
+        'average_temperature': 0,
+        'average_humidity': 0,
+        'air_quality': 0,
+        'alert_count': 0,
+      };
+      print('Error in calculateQuickStats: $e');
     }
   }
 
@@ -86,4 +138,4 @@ class DashboardProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
   }
-} 
+}

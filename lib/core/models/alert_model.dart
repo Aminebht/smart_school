@@ -2,119 +2,103 @@ import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
 
 class AlertModel {
-  final String id;
-  final String title;
+  final int alertId;
+  final int deviceId;
+  final String alertType;
+  final String severity;
   final String message;
-  final String classroomId;
-  final String? departmentId;
   final DateTime timestamp;
-  final String type;
-  final bool isRead;
-  final DeviceStatus severity;
-
+  final bool resolved;
+  final DateTime? resolvedAt;
+  final int? resolvedByUserId;
+  
   AlertModel({
-    required this.id,
-    required this.title,
-    required this.message,
-    required this.classroomId,
-    this.departmentId,
-    required this.timestamp,
-    required this.type,
-    this.isRead = false,
+    required this.alertId,
+    required this.deviceId,
+    required this.alertType,
     required this.severity,
+    required this.message,
+    required this.timestamp,
+    required this.resolved,
+    this.resolvedAt,
+    this.resolvedByUserId,
   });
-
+  
   factory AlertModel.fromJson(Map<String, dynamic> json) {
-    DeviceStatus severity = DeviceStatus.normal;
-    if (json['severity'] != null) {
-      switch (json['severity']) {
-        case 'warning':
-          severity = DeviceStatus.warning;
-          break;
-        case 'critical':
-          severity = DeviceStatus.critical;
-          break;
-        default:
-          severity = DeviceStatus.normal;
-      }
-    }
-
     return AlertModel(
-      id: json['id'],
-      title: json['title'],
+      alertId: json['alert_id'],
+      deviceId: json['device_id'],
+      alertType: json['alert_type'],
+      severity: json['severity'],
       message: json['message'],
-      classroomId: json['classroom_id'],
-      departmentId: json['department_id'],
-      timestamp: DateTime.parse(json['created_at']),
-      type: json['type'],
-      isRead: json['is_read'] ?? false,
-      severity: severity,
+      timestamp: DateTime.parse(json['timestamp']),
+      resolved: json['resolved'] ?? false,
+      resolvedAt: json['resolved_at'] != null 
+          ? DateTime.parse(json['resolved_at']) 
+          : null,
+      resolvedByUserId: json['resolved_by_user_id'],
     );
   }
-
-  Map<String, dynamic> toJson() {
-    String severityStr;
-    switch (severity) {
-      case DeviceStatus.warning:
-        severityStr = 'warning';
-        break;
-      case DeviceStatus.critical:
-        severityStr = 'critical';
-        break;
-      default:
-        severityStr = 'normal';
-    }
-
-    return {
-      'id': id,
-      'title': title,
-      'message': message,
-      'classroom_id': classroomId,
-      'department_id': departmentId,
-      'created_at': timestamp.toIso8601String(),
-      'type': type,
-      'is_read': isRead,
-      'severity': severityStr,
-    };
-  }
-
+  
+  // Get color based on severity
   Color get severityColor {
-     switch (severity) {
-      case DeviceStatus.normal:
-        return AppColors.success;
-      case DeviceStatus.warning:
-        return AppColors.warning;
-      case DeviceStatus.critical:
-        return AppColors.error;
-      case DeviceStatus.offline:
-        return AppColors.error;
-      case DeviceStatus.maintenance:
-        return AppColors.warning;
-      case DeviceStatus.online:
-        return AppColors.success;
+    switch (severity.toLowerCase()) {
+      case 'critical':
+        return Colors.red;
+      case 'warning':
+        return Colors.orange;
+      case 'info':
       default:
-        return AppColors.success; // Fallback color
+        return Colors.blue;
     }
   }
-
+  
+  // Get icon based on alert type
   IconData get alertIcon {
-    switch (type) {
+    switch (alertType.toLowerCase()) {
       case 'temperature':
         return Icons.thermostat;
       case 'humidity':
         return Icons.water_drop;
-      case 'gas':
-        return Icons.cloud;
       case 'motion':
         return Icons.motion_photos_on;
       case 'door':
-        return Icons.meeting_room;
-      case 'window':
-        return Icons.window;
+        return Icons.door_front_door;
+      case 'gas':
+        return Icons.air;
+      case 'smoke':
+        return Icons.cloud;
       case 'security':
         return Icons.security;
+      case 'maintenance':
+        return Icons.build;
+      case 'system':
+        return Icons.computer;
       default:
         return Icons.warning;
     }
   }
-} 
+  
+  // Create a title from alert type and severity
+  String get title {
+    final formattedType = alertType.split('_')
+      .map((word) => '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}')
+      .join(' ');
+    
+    return '$formattedType ${severity.toLowerCase() == 'info' ? 'Notification' : 'Alert'}';
+  }
+  
+  Map<String, dynamic> toJson() {
+    return {
+      'alert_id': alertId,
+      'device_id': deviceId,
+      'alert_type': alertType,
+      'severity': severity,
+      'message': message,
+      'timestamp': timestamp.toIso8601String(),
+      'resolved': resolved,
+      'resolved_at': resolvedAt?.toIso8601String(),
+      'resolved_by_user_id': resolvedByUserId,
+    };
+  }
+}
