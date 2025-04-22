@@ -265,47 +265,81 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
 
   Widget _buildDevicesTab(ClassroomProvider provider) {
     final classroom = provider.classroom!;
-    final List<dynamic> devices = [];
+    final List<SensorModel> sensors = classroom.sensors;
+    final List<ActuatorModel> actuators = classroom.actuators;
     
-    if (classroom.sensors.isNotEmpty) {
-      devices.addAll(classroom.sensors);
-    }
-    
-    if (classroom.actuators.isNotEmpty) {
-      devices.addAll(classroom.actuators);
-    }
-    
-    if (devices.isEmpty) {
+    if (sensors.isEmpty && actuators.isEmpty) {
       return const Center(
         child: Text('No devices available'),
       );
     }
 
-    return ListView.separated(
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
-      itemCount: devices.length,
-      separatorBuilder: (context, index) => const Divider(),
-      itemBuilder: (context, index) {
-        final device = devices[index];
-        return DeviceControlWidget(
-          device: device,
-          sensorReadings: provider.classroom!.sensorReadings,
-          onToggle: (isOn) {
-            // Only handle toggling for actuators
-            if (device is ActuatorModel) {
-              provider.toggleDevice(device.actuatorId.toString(), isOn);
-            }
-            // Do nothing for sensors
-          },
-          onValueChanged: (value) {
-            // Only for adjustable actuators
-            if (device is ActuatorModel && 
-                (device.actuatorType == 'light' || device.actuatorType == 'fan')) {
-              provider.updateDeviceValue(device.actuatorId.toString(), value);
-            }
-          },
-        );
-      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Actuators section
+          if (actuators.isNotEmpty) ...[
+            const Text(
+              'Actuators',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: actuators.length,
+              separatorBuilder: (context, index) => const Divider(),
+              itemBuilder: (context, index) {
+                final actuator = actuators[index];
+                return DeviceControlWidget(
+                  key: ValueKey('actuator_${actuator.actuatorId}'),
+                  device: actuator,
+                  sensorReadings: classroom.sensorReadings,
+                  onToggle: (isOn) {
+                    provider.toggleDevice(actuator.actuatorId.toString(), isOn);
+                  },
+                  onValueChanged: (value) {
+                    if (actuator.actuatorType == 'light' || actuator.actuatorType == 'fan') {
+                      provider.updateDeviceValue(actuator.actuatorId.toString(), value);
+                    }
+                  },
+                );
+              },
+            ),
+          ],
+          
+          // Add space between sections
+          if (actuators.isNotEmpty && sensors.isNotEmpty)
+            const SizedBox(height: 24),
+          
+          // Sensors section
+          if (sensors.isNotEmpty) ...[
+            const Text(
+              'Sensors',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: sensors.length,
+              separatorBuilder: (context, index) => const Divider(),
+              itemBuilder: (context, index) {
+                final sensor = sensors[index];
+                return DeviceControlWidget(
+                  key: ValueKey('sensor_${sensor.sensorId}'),
+                  device: sensor,
+                  sensorReadings: classroom.sensorReadings,
+                  onToggle: (_) {}, // Empty function for sensors that can't be toggled
+                  onValueChanged: null, // Sensors don't have adjustable values
+                );
+              },
+            ),
+          ],
+        ],
+      ),
     );
   }
 

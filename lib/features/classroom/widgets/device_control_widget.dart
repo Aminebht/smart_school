@@ -34,12 +34,14 @@ class DeviceControlWidget extends StatelessWidget {
   }
 
   Widget _buildActuatorControl(BuildContext context, ActuatorModel actuator) {
-    final bool isOnline = actuator.status == DeviceStatus.online;
+    // Add null safety check for currentState
+    final bool isOn = actuator.currentState?.toLowerCase() == "on";
     
     return ListTile(
+      key: ValueKey('actuator_control_${actuator.actuatorId}'),
       leading: Icon(
         _getIconForType(actuator.actuatorType),
-        color: isOnline ? Colors.green : Colors.grey,
+        color: isOn ? Colors.green : Colors.grey,
       ),
       title: Text(
         actuator.name,
@@ -50,15 +52,15 @@ class DeviceControlWidget extends StatelessWidget {
         children: [
           Text('Type: ${actuator.actuatorType}'),
           Text(
-            'Status: ${isOnline ? "On" : "Off"}',
+            'Status: ${isOn ? "On" : "Off"}',
             style: TextStyle(
-              color: isOnline ? Colors.green : Colors.grey,
+              color: isOn ? Colors.green : Colors.grey,
             ),
           ),
         ],
       ),
       trailing: Switch(
-        value: isOnline,
+        value: isOn,
         activeColor: Colors.green,
         onChanged: onToggle,
       ),

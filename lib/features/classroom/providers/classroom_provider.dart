@@ -141,61 +141,49 @@ class ClassroomProvider extends ChangeNotifier {
   }
 
   // Toggle device state (on/off)
-  Future<void> toggleDevice(String deviceId, bool isOn) async {
+  Future<void> toggleDevice(String actuatorId, bool isOn) async {
     try {
-      // Only toggle actuators
-      String actuatorId = '';
-      if (_classroom != null) {
-        // First check if this is an actuator by deviceId
-        for (var actuator in _classroom!.actuators) {
-          if (actuator.deviceId.toString() == deviceId) {
-            actuatorId = actuator.actuatorId.toString();
-            break;
-          }
-        }
-        
-        // Also check if the ID itself is an actuatorId
-        if (actuatorId.isEmpty) {
-          for (var actuator in _classroom!.actuators) {
-            if (actuator.actuatorId.toString() == deviceId) {
-              actuatorId = actuator.actuatorId.toString();
-              deviceId = actuator.deviceId.toString();
-              break;
-            }
-          }
-        }
-        
-        // If an actuator was found
-        if (actuatorId.isNotEmpty) {
-          // Update both device and actuator
-          await SupabaseService.toggleDeviceAndActuator(deviceId, actuatorId, isOn);
-          
-          // Update the local state
-          for (var i = 0; i < _classroom!.actuators.length; i++) {
-            if (_classroom!.actuators[i].actuatorId.toString() == actuatorId) {
-              // Update the actuator status
-              final updatedActuator = _classroom!.actuators[i];
-              _classroom!.actuators[i] = ActuatorModel(
-                actuatorId: updatedActuator.actuatorId,
-                deviceId: updatedActuator.deviceId,
-                actuatorType: updatedActuator.actuatorType,
-                controlType: updatedActuator.controlType,
-                currentState: isOn ? "on" : "off", // Update current state
-                createdAt: updatedActuator.createdAt,
-                updatedAt: updatedActuator.updatedAt,
-                status: isOn ? DeviceStatus.online : DeviceStatus.offline,
-                name: updatedActuator.name,
-              );
-              notifyListeners();
-              return;
-            }
-          }
-        } else {
-          // Not an actuator, don't toggle
-          _errorMessage = 'Only actuators can be toggled';
-          notifyListeners();
-        }
+      if (_classroom == null) {
+        _errorMessage = 'Classroom data not available';
+        notifyListeners();
+        return;
       }
+
+      // Find the actuator directly by actuatorId
+      final actuatorIndex = _classroom!.actuators.indexWhere(
+        (a) => a.actuatorId.toString() == actuatorId
+      );
+      
+      if (actuatorIndex == -1) {
+        _errorMessage = 'Actuator not found';
+        notifyListeners();
+        return;
+      }
+      
+      // Get actuator and its device ID
+      final actuator = _classroom!.actuators[actuatorIndex];
+      final deviceId = actuator.deviceId.toString();
+      
+      // Call service to toggle the device state
+      await SupabaseService.toggleDeviceAndActuator(deviceId, actuatorId, isOn);
+      
+      // Update local state immediately to reflect UI change
+      final updatedActuator = ActuatorModel(
+        actuatorId: actuator.actuatorId,
+        deviceId: actuator.deviceId,
+        actuatorType: actuator.actuatorType,
+        controlType: actuator.controlType,
+        currentState: isOn ? "on" : "off", // Set state based on toggle value
+        createdAt: actuator.createdAt,
+        updatedAt: actuator.updatedAt,
+        status: actuator.status, // Keep existing status
+        name: actuator.name,
+      );
+      
+      // Update actuator in the list
+      _classroom!.actuators[actuatorIndex] = updatedActuator;
+      notifyListeners();
+      
     } catch (e) {
       _errorMessage = 'Failed to toggle device: ${e.toString()}';
       notifyListeners();
