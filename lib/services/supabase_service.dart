@@ -130,13 +130,34 @@ class SupabaseService {
   }
   
   static Future<void> toggleActuator(String actuatorId, bool isOn) async {
-    await client
+    final client = await getClient();
+    
+    try {
+      // Get existing actuator to preserve settings
+      final response = await client
+        .from('actuators')
+        .select('settings')
+        .eq('actuator_id', actuatorId)
+        .single();
+        
+      Map<String, dynamic> settings = {};
+      if (response != null && response['settings'] != null) {
+        settings = Map<String, dynamic>.from(response['settings']);
+      }
+      
+      // Update with preserved settings
+      await client
         .from('actuators')
         .update({
-          'current_state': isOn ? 'on' : 'off',  // Store string values
+          'current_state': isOn ? 'on' : 'off',
+          'settings': settings, // Preserve existing settings
           'updated_at': DateTime.now().toIso8601String()
         })
         .eq('actuator_id', actuatorId);
+    } catch (e) {
+      print('Error toggling actuator: $e');
+      throw e;
+    }
   }
   
   static Future<void> toggleDeviceAndActuator(String deviceId, String actuatorId, bool isOn) async {
@@ -152,6 +173,24 @@ class SupabaseService {
     } catch (e) {
       print('Error toggling device and actuator: $e');
       throw e;
+    }
+  }
+  
+  static Future<void> updateActuatorSettings(String actuatorId, Map<String, dynamic> settings) async {
+    final client = await getClient();
+    
+    try {
+      await client
+        .from('actuators')
+        .update({
+          'settings': settings,
+          'updated_at': DateTime.now().toIso8601String()
+        })
+        .eq('actuator_id', actuatorId);
+        
+    } catch (e) {
+      print('Error updating actuator settings: $e');
+      throw Exception('Failed to update actuator settings: $e');
     }
   }
   

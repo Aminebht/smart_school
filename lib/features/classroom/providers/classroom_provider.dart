@@ -175,9 +175,10 @@ class ClassroomProvider extends ChangeNotifier {
         controlType: actuator.controlType,
         currentState: isOn ? "on" : "off", // Set state based on toggle value
         createdAt: actuator.createdAt,
-        updatedAt: actuator.updatedAt,
+        updatedAt: DateTime.now(),
         status: actuator.status, // Keep existing status
         name: actuator.name,
+        settings: actuator.settings, // Preserve existing settings
       );
       
       // Update actuator in the list
@@ -190,16 +191,69 @@ class ClassroomProvider extends ChangeNotifier {
     }
   }
 
-  // Update device value (for dimmable lights, thermostats, etc.)
-  Future<void> updateDeviceValue(String deviceId, double value) async {
+  // Update device value (for dimmable lights, fans, etc.)
+  Future<void> updateDeviceValue(String actuatorId, double value) async {
     try {
-      await SupabaseService.updateDeviceValue(deviceId, value);
-      
-      // Update the local state if successful
-      if (_classroom != null) {
-        // Find the device and update its value
+      if (_classroom == null) {
+        _errorMessage = 'Classroom data not available';
         notifyListeners();
+        return;
       }
+
+      // Find the actuator directly by actuatorId
+      final actuatorIndex = _classroom!.actuators.indexWhere(
+        (a) => a.actuatorId.toString() == actuatorId
+      );
+      
+      if (actuatorIndex == -1) {
+        _errorMessage = 'Actuator not found';
+        notifyListeners();
+        return;
+      }
+      
+      // Get actuator
+      final actuator = _classroom!.actuators[actuatorIndex];
+      
+      // Determine what setting to update based on actuator type
+      String settingKey;
+      if (actuator.actuatorType.toLowerCase() == 'light') {
+        settingKey = 'brightness';
+      } else if (actuator.actuatorType.toLowerCase() == 'fan') {
+        settingKey = 'speed';
+      } else {
+        _errorMessage = 'Unsupported actuator type';
+        notifyListeners();
+        return;
+      }
+      
+      // Create updated settings - ensure we preserve existing settings
+      final updatedSettings = Map<String, dynamic>.from(actuator.settings);
+      updatedSettings[settingKey] = value.round();
+      
+      // Update local state immediately to reflect UI change
+      final updatedActuator = ActuatorModel(
+        actuatorId: actuator.actuatorId,
+        deviceId: actuator.deviceId,
+        actuatorType: actuator.actuatorType,
+        controlType: actuator.controlType,
+        currentState: actuator.currentState,
+        createdAt: actuator.createdAt,
+        updatedAt: DateTime.now(),
+        status: actuator.status,
+        name: actuator.name,
+        settings: updatedSettings,
+      );
+      
+      // Update actuator in the list immediately for UI responsiveness
+      _classroom!.actuators[actuatorIndex] = updatedActuator;
+      notifyListeners();
+      
+      // Call service to update the actuator settings
+      await SupabaseService.updateActuatorSettings(
+        actuator.actuatorId.toString(), 
+        updatedSettings
+      );
+      
     } catch (e) {
       _errorMessage = 'Failed to update device value: ${e.toString()}';
       notifyListeners();

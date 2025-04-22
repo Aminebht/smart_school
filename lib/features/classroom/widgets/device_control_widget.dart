@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/actuator_model.dart';
@@ -7,14 +8,14 @@ import '../../../core/models/classroom_model.dart';
 
 class DeviceControlWidget extends StatelessWidget {
   final dynamic device; // Can be SensorModel or ActuatorModel
-  final Function(bool) onToggle;
+  final Function(bool)? onToggle;
   final Function(double)? onValueChanged;
   final List<SensorReadingModel>? sensorReadings;
 
   const DeviceControlWidget({
     Key? key,
     required this.device,
-    required this.onToggle,
+    this.onToggle,
     this.onValueChanged,
     this.sensorReadings,
   }) : super(key: key);
@@ -37,34 +38,111 @@ class DeviceControlWidget extends StatelessWidget {
     // Add null safety check for currentState
     final bool isOn = actuator.currentState?.toLowerCase() == "on";
     
-    return ListTile(
-      key: ValueKey('actuator_control_${actuator.actuatorId}'),
-      leading: Icon(
-        _getIconForType(actuator.actuatorType),
-        color: isOn ? Colors.green : Colors.grey,
-      ),
-      title: Text(
-        actuator.name,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Type: ${actuator.actuatorType}'),
-          Text(
-            'Status: ${isOn ? "On" : "Off"}',
-            style: TextStyle(
-              color: isOn ? Colors.green : Colors.grey,
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          key: ValueKey('actuator_control_${actuator.actuatorId}'),
+          leading: Icon(
+            _getIconForType(actuator.actuatorType),
+            color: isOn ? Colors.green : Colors.grey,
           ),
-        ],
-      ),
-      trailing: Switch(
-        value: isOn,
-        activeColor: Colors.green,
-        onChanged: onToggle,
-      ),
+          title: Text(
+            actuator.name,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Type: ${actuator.actuatorType}'),
+              Text(
+                'Status: ${isOn ? "On" : "Off"}',
+                style: TextStyle(
+                  color: isOn ? Colors.green : Colors.grey,
+                ),
+              ),
+            ],
+          ),
+          trailing: Switch(
+            value: isOn,
+            activeColor: Colors.green,
+            onChanged: onToggle,
+          ),
+        ),
+        
+        // Only show sliders when the device is turned on
+        if (isOn) _buildControlSlider(context, actuator),
+      ],
     );
+  }
+  
+  Widget _buildControlSlider(BuildContext context, ActuatorModel actuator) {
+    // Only show controls for specific actuator types
+    if (actuator.actuatorType.toLowerCase() == 'light') {
+      // Read brightness value from actuator settings, ensuring we have a valid value
+      final brightness = actuator.brightness;
+      
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.brightness_6, size: 20),
+                const SizedBox(width: 8),
+                const Text('Brightness:'),
+                Expanded(
+                  child: Slider(
+                    value: brightness.toDouble(),
+                    min: 0,
+                    max: 100,
+                    divisions: 20,
+                    label: '$brightness%',
+                    onChanged: onValueChanged,
+                  ),
+                ),
+                Text('$brightness%'),
+              ],
+            ),
+          ],
+        ),
+      );
+    } 
+    else if (actuator.actuatorType.toLowerCase() == 'fan') {
+      // Read speed value from actuator settings, ensuring we have a valid value
+      final speed = actuator.speed;
+      
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.speed, size: 20),
+                const SizedBox(width: 8),
+                const Text('Speed:'),
+                Expanded(
+                  child: Slider(
+                    value: speed.toDouble(),
+                    min: 0,
+                    max: 100,
+                    divisions: 20,
+                    label: '$speed%',
+                    onChanged: onValueChanged,
+                  ),
+                ),
+                Text('$speed%'),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // Return an empty container for other types
+    return const SizedBox.shrink();
   }
 
   Widget _buildSensorDisplay(BuildContext context, SensorModel sensor) {
@@ -106,7 +184,12 @@ class DeviceControlWidget extends StatelessWidget {
                 color: _getColorForReading(sensor, latestReading),
               ),
             ),
-        
+          Text(
+            'Status: ${isOnline ? "Online" : "Offline"}',
+            style: TextStyle(
+              color: isOnline ? Colors.green : Colors.grey,
+            ),
+          ),
         ],
       ),
     );
@@ -131,7 +214,7 @@ class DeviceControlWidget extends StatelessWidget {
       case 'ac':
         return Icons.ac_unit;
       default:
-        return Icons.sensors;
+        return Icons.device_unknown;
     }
   }
 
