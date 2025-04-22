@@ -13,6 +13,9 @@ import 'features/department/screens/department_list_screen.dart';
 import 'features/department/screens/department_detail_screen.dart';
 import 'features/classroom/screens/classroom_detail_screen.dart';
 import 'features/camera/screens/camera_view_screen.dart';
+import 'features/security/screens/security_dashboard_screen.dart'; // Add this import
+import 'features/security/screens/security_events_screen.dart'; // Add this import
+import 'features/security/providers/security_provider.dart'; // Add this import
 import 'services/supabase_service.dart';
 
 void main() async {
@@ -39,6 +42,7 @@ class SmartSchoolApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => SecurityProvider()), // Add security provider
         // Add other providers here
       ],
       child: MaterialApp(
@@ -90,6 +94,8 @@ class SmartSchoolApp extends StatelessWidget {
           AppRoutes.resetPassword: (context) => const ResetPasswordScreen(),
           AppRoutes.dashboard: (context) => const DashboardScreen(),
           AppRoutes.department: (context) => const DepartmentListScreen(),
+          AppRoutes.security: (context) => const SecurityDashboardScreen(), // Add security route
+          AppRoutes.securityEvents: (context) => const SecurityEventsScreen(), // Add security events route
           // Add other routes as they are developed
         },
         onGenerateRoute: (settings) {

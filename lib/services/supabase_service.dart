@@ -492,4 +492,144 @@ class SupabaseService {
   }
 
   static getCameraDetails(int cameraId) {}
+
+  // Get all security devices with their status
+  static Future<List<Map<String, dynamic>>> getSecurityDevices() async {
+    final client = await getClient();
+    
+    try {
+      // First get security-related devices
+      final response = await client
+        .from('devices')
+        .select('''
+          *,
+          classrooms:classroom_id (
+            classroom_id,
+            name
+          )
+        ''')
+        .inFilter('device_type', ['door_lock', 'window_sensor', 'motion_sensor', 'camera'])
+        .order('device_id');
+
+      return (response as List).map((device) {
+        final classroom = device['classrooms'];
+        return {
+          'device_id': device['device_id'],
+          'device_type': device['device_type'],
+          'name': device['name'] ?? 'Security Device',
+          'location': device['location'],
+          'classroom_id': classroom != null ? classroom['classroom_id'] : null,
+          'classroom_name': classroom != null ? classroom['name'] : null,
+          'status': _mapDeviceStatusToSecurity(device['status']),
+          'is_active': device['status'] == 'online',
+          'updated_at': device['updated_at'],
+        };
+      }).toList();
+    } catch (e) {
+      print('Error getting security devices: $e');
+      return [];
+    }
+  }
+
+  // Helper method to map device status to security status
+  static String _mapDeviceStatusToSecurity(String? status) {
+    if (status == null) return 'offline';
+    
+    switch (status.toLowerCase()) {
+      case 'online':
+        return 'secured';
+      case 'offline':
+        return 'offline';
+      case 'maintenance':
+        return 'offline';
+      default:
+        return status.toLowerCase();
+    }
+  }
+
+  // Get security events
+  static Future<List<Map<String, dynamic>>> getSecurityEvents({int limit = 20}) async {
+    final client = await getClient();
+    
+    try {
+      final response = await client
+        .from('motion_events') // Using motion_events as a proxy for security events
+        .select('''
+          *,
+          devices:device_id (
+            device_id,
+            name,
+            classroom_id
+          )
+        ''')
+        .order('timestamp', ascending: false)
+        .limit(limit);
+
+      // We'll transform motion events into security events with more details
+      return (response as List).map((event) {
+        final device = event['devices'];
+        
+        return {
+          'event_id': event['event_id'],
+          'device_id': event['device_id'],
+          'device_name': device != null ? device['name'] : 'Unknown Device',
+          'event_type': 'motion_detected', // In a real app, this would vary
+          'description': 'Motion detected in the area',
+          'timestamp': event['timestamp'],
+          'is_acknowledged': false, // This field might not exist in your actual DB
+        };
+      }).toList();
+    } catch (e) {
+      print('Error getting security events: $e');
+      return [];
+    }
+  }
+
+  // Toggle security device (lock/unlock doors, etc.)
+  static Future<void> toggleSecurityDevice(String deviceId, bool secure) async {
+    final client = await getClient();
+    
+    try {
+      // Update device status
+      await client
+        .from('devices')
+        .update({
+          'status': secure ? 'online' : 'offline', // Using online/offline as proxy for secured/breached
+          'updated_at': DateTime.now().toIso8601String()
+        })
+        .eq('device_id', deviceId);
+        
+    } catch (e) {
+      print('Error toggling security device: $e');
+      throw e;
+    }
+  }
+
+  // Acknowledge security event
+  static Future<void> acknowledgeSecurityEvent(int eventId) async {
+    final client = await getClient();
+    
+    try {
+      // In a real app, you'd update your security_events table
+      // For this example, we'll just print since motion_events doesn't have this column
+      print('Acknowledged event $eventId');
+      
+    } catch (e) {
+      print('Error acknowledging security event: $e');
+      throw e;
+    }
+  }
+
+  // Get alarm system status
+  static Future<String> getAlarmSystemStatus() async {
+    // In a real app, you'd fetch this from your database
+    // For this example, we'll return a fixed value
+    return 'inactive';
+  }
+
+  // Set alarm system status
+  static Future<void> setAlarmSystemStatus(String status) async {
+    // In a real app, you'd update this in your database
+    print('Setting alarm system status to: $status');
+  }
 }

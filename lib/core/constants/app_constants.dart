@@ -33,15 +33,16 @@ enum DeviceStatus {
 
 // Routes
 class AppRoutes {
-  static const String splash = '/';
-  static const String login = '/login';
-  static const String resetPassword = '/reset-password';
-  static const String dashboard = '/dashboard';
-  static const String department = '/department';
-  static const String classroom = '/classroom';
-  static const String cameraView = '/camera';
-  static const String security = '/security';
-  static const String analytics = '/analytics';
-  static const String settings = '/settings';
-  static const String camera = '/camera';
+  static const splash = '/';
+  static const login = '/login';
+  static const resetPassword = '/reset_password';
+  static const dashboard = '/dashboard';
+  static const department = '/department';
+  static const classroom = '/classroom';
+  static const camera = '/camera';
+  
+  // Security routes
+  static const security = '/security';
+  static const securityEvents = '/security_events';
+  static const accessLogs = '/access_logs';
 }
