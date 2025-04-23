@@ -505,17 +505,24 @@ class SecurityProvider extends ChangeNotifier {
   // Delete an alarm rule
   Future<bool> deleteAlarmRule(int ruleId) async {
     try {
-      final success = await SupabaseService.deleteAlarmRule(ruleId);
-      if (success) {
-        _alarmRules.removeWhere((rule) => rule.ruleId == ruleId);
-        notifyListeners();
-        return true;
-      }
-      return false;
-    } catch (e) {
-      _errorMessage = 'Failed to delete rule: ${e.toString()}';
+      _isLoading = true;
       notifyListeners();
-      return false;
+      
+      // Call the Supabase service to delete the rule
+      await SupabaseService.deleteAlarmRule(ruleId);
+      
+      // If we got here without exceptions, the delete was successful
+      // Update local state
+      _alarmRules.removeWhere((rule) => rule.ruleId == ruleId);
+      
+      _isLoading = false;
+      notifyListeners();
+      return true; // Always return a boolean value
+    } catch (e) {
+      _errorMessage = 'Error deleting alarm rule: ${e.toString()}';
+      _isLoading = false;
+      notifyListeners();
+      return false; // Return false on error, not null
     }
   }
 

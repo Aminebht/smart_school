@@ -877,17 +877,16 @@ class SupabaseService {
     }
   }
 
-  static Future<bool> deleteAlarmRule(int ruleId) async {
+  static Future<void> deleteAlarmRule(int ruleId) async {
     final client = await getClient();
     try {
-      final response =await client
+      await client
         .from('alarm_rules')
         .delete()
         .eq('rule_id', ruleId);
-        return response;
     } catch (e) {
       print('Error deleting alarm rule: $e');
-      throw e;
+      throw e; // Re-throw to handle in the provider
     }
   }
 

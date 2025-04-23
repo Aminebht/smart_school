@@ -27,6 +27,7 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
   final _ruleNameController = TextEditingController();
   int? _selectedDeviceId;
   String _conditionType = 'threshold';
+  String _localConditionType = 'threshold';
   double? _thresholdValue;
   String _comparisonOperator = '>';
   String? _statusValue;
@@ -280,6 +281,7 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
     _ruleNameController.text = '';
     _selectedDeviceId = null;
     _conditionType = 'threshold';
+    _localConditionType = 'threshold';
     _thresholdValue = null;
     _comparisonOperator = '>';
     _statusValue = null;
@@ -293,6 +295,7 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
     _ruleNameController.text = rule.ruleName;
     _selectedDeviceId = rule.deviceId;
     _conditionType = rule.conditionType;
+    _localConditionType = rule.conditionType;
     _thresholdValue = rule.thresholdValue;
     _comparisonOperator = rule.comparisonOperator ?? '>';
     _statusValue = rule.statusValue;
@@ -317,281 +320,309 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
       _loadRuleValues(rule);
     }
     
-    // Get the provider before entering the dialog builder
-    final provider = Provider.of<SecurityProvider>(context, listen: false);
+    _localConditionType = _conditionType;
+    
+    // IMPORTANT: Capture provider reference BEFORE showing dialog
+    // This ensures we're not looking up ancestors during dialog closure
+    final provider = _securityProvider; // Use class variable instead of looking up
     
     await showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        // Use dialogContext inside the builder, not the outer context
-        // But use the provider instance we already grabbed
-        title: Text(rule == null ? 'Add Rule' : 'Edit Rule'),
-        content: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  controller: _ruleNameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Rule Name',
-                    hintText: 'Enter a name for this rule',
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter a rule name';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                
-                // Device selection
-                DropdownButtonFormField<int>(
-                  decoration: const InputDecoration(
-                    labelText: 'Device',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.devices),
-                  ),
-                  value: _selectedDeviceId,
-                  hint: const Text('Select a device'),
-                  isExpanded: true, // Make dropdown take full width
-                  items: [
-                    // Add general security devices
-                    ...provider.devices.map((device) {
-                      return DropdownMenuItem<int>(
-                        value: device.deviceId,
-                        child: Row(
-                          children: [
-                            Icon(
-                              _getDeviceIcon(device.deviceType),
-                              size: 18,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '${device.name} (${device.deviceType})',
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                    
-                    // Add sensors (if they have a different ID scheme)
-                    ...provider.sensors.map((sensor) {
-                      final deviceId = sensor.deviceId; // Assuming sensors have deviceId property
-                      return DropdownMenuItem<int>(
-                        value: deviceId,
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.sensors,
-                              size: 18, 
-                              color: AppColors.info,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '${sensor.name} (${sensor.sensorType} sensor)',
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                    
-                    // Add cameras (if they have a different ID scheme)
-                    ...provider.cameras.map((camera) {
-                      final deviceId = camera.deviceId; // Assuming cameras have deviceId property
-                      return DropdownMenuItem<int>(
-                        value: deviceId,
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.videocam,
-                              size: 18,
-                              color: AppColors.warning,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '${camera.name} (camera)',
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedDeviceId = value;
-                      // When device changes, update the available condition types
-                      // based on the selected device type
-                      _updateAvailableConditionTypes();
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null) {
-                      return 'Please select a device';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                
-                // Condition type
-                const Text('Condition Type', style: TextStyle(fontWeight: FontWeight.bold)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
+      barrierDismissible: false, // Prevent dismissing by tapping outside
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: Text(rule == null ? 'Add Rule' : 'Edit Rule'),
+            content: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ChoiceChip(
-                      label: const Text('Threshold'),
-                      selected: _conditionType == 'threshold',
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _conditionType = 'threshold';
-                          });
+                    TextFormField(
+                      controller: _ruleNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Rule Name',
+                        hintText: 'Enter a name for this rule',
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter a rule name';
                         }
+                        return null;
                       },
                     ),
-                    ChoiceChip(
-                      label: const Text('Status Change'),
-                      selected: _conditionType == 'status_change',
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _conditionType = 'status_change';
-                          });
+                    const SizedBox(height: 16),
+                    
+                    // Device selection
+                    DropdownButtonFormField<int>(
+                      decoration: const InputDecoration(
+                        labelText: 'Device',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.devices),
+                      ),
+                      value: _selectedDeviceId,
+                      hint: const Text('Select a device'),
+                      isExpanded: true, // Make dropdown take full width
+                      items: (() {
+                        // Use a function to create items to avoid duplicate deviceIds
+                        final Set<int> addedDeviceIds = {}; // Track added IDs to prevent duplicates
+                        final List<DropdownMenuItem<int>> items = [];
+                        
+                        // First add all devices from main devices list
+                        for (var device in provider.devices) {
+                          if (!addedDeviceIds.contains(device.deviceId)) {
+                            addedDeviceIds.add(device.deviceId);
+                            items.add(DropdownMenuItem<int>(
+                              value: device.deviceId,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    _getDeviceIcon(device.deviceType),
+                                    size: 18,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${device.name} (${device.deviceType})',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ));
+                          }
                         }
-                      },
-                    ),
-                    ChoiceChip(
-                      label: const Text('Motion'),
-                      selected: _conditionType == 'motion_detected',
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _conditionType = 'motion_detected';
-                          });
+                        
+                        // Then explicitly add all sensors
+                        for (var sensor in provider.sensors) {
+                          if (!addedDeviceIds.contains(sensor.deviceId)) {
+                            addedDeviceIds.add(sensor.deviceId);
+                            items.add(DropdownMenuItem<int>(
+                              value: sensor.deviceId,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.sensors,
+                                    size: 18, 
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${sensor.name} (${sensor.sensorType} sensor)',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ));
+                          }
                         }
-                      },
-                    ),
-                    ChoiceChip(
-                      label: const Text('Schedule'),
-                      selected: _conditionType == 'schedule',
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() {
-                            _conditionType = 'schedule';
-                          });
+                        
+                        // Then explicitly add all cameras
+                        for (var camera in provider.cameras) {
+                          if (camera.deviceId != null && !addedDeviceIds.contains(camera.deviceId)) {
+                            addedDeviceIds.add(camera.deviceId!);
+                            items.add(DropdownMenuItem<int>(
+                              value: camera.deviceId,
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.videocam,
+                                    size: 18,
+                                    color: AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      '${camera.name} (camera)',
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ));
+                          }
                         }
-                      },
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                
-                // Condition specific fields
-                if (_conditionType == 'threshold') _buildThresholdFields(),
-                if (_conditionType == 'status_change') _buildStatusChangeFields(),
-                if (_conditionType == 'schedule') _buildScheduleFields(),
-                
-                const SizedBox(height: 16),
-                
-                // Active switch
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Active'),
-                    Switch(
-                      value: _isActive,
+                        
+                        return items;
+                      })(),
                       onChanged: (value) {
-                        setState(() {
-                          _isActive = value;
+                        setStateDialog(() {
+                          _selectedDeviceId = value;
                         });
+                        _updateConditionTypeForDialog(value, setStateDialog);
                       },
+                      validator: (value) {
+                        if (value == null) {
+                          return 'Please select a device';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // Condition type selection with dialog-specific setState
+                    const Text('Condition Type', style: TextStyle(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: const Text('Threshold'),
+                          selected: _localConditionType == 'threshold',  // Updated reference
+                          onSelected: (selected) {
+                            if (selected) {
+                              setStateDialog(() {  // Use dialog's setState
+                                _localConditionType = 'threshold';  // Updated reference
+                              });
+                            }
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('Status Change'),
+                          selected: _localConditionType == 'status_change',  // Updated reference
+                          onSelected: (selected) {
+                            if (selected) {
+                              setStateDialog(() {  // Use dialog's setState
+                                _localConditionType = 'status_change';  // Updated reference
+                              });
+                            }
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('Motion'),
+                          selected: _localConditionType == 'motion_detected',  // Updated reference
+                          onSelected: (selected) {
+                            if (selected) {
+                              setStateDialog(() {  // Use dialog's setState
+                                _localConditionType = 'motion_detected';  // Updated reference
+                              });
+                            }
+                          },
+                        ),
+                        ChoiceChip(
+                          label: const Text('Schedule'),
+                          selected: _localConditionType == 'schedule',  // Updated reference
+                          onSelected: (selected) {
+                            if (selected) {
+                              setStateDialog(() {  // Use dialog's setState
+                                _localConditionType = 'schedule';  // Updated reference
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    
+                    // Conditionally show different fields based on _localConditionType
+                    if (_localConditionType == 'threshold') _buildThresholdFields(setStateDialog),
+                    if (_localConditionType == 'status_change') _buildStatusChangeFields(setStateDialog),
+                    if (_localConditionType == 'schedule') _buildScheduleFields(setStateDialog),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // Active switch
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Active'),
+                        Switch(
+                          value: _isActive,
+                          onChanged: (value) {
+                            setStateDialog(() { // Use dialog's setState
+                              _isActive = value;
+                            });
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              if (_formKey.currentState!.validate()) {
-                Navigator.of(context).pop();
-                
-                final now = DateTime.now();
-                
-                final alarmRule = AlarmRuleModel(
-                  ruleId: rule?.ruleId ?? 0, // Will be set by backend for new rule
-                  alarmId: widget.alarmId,
-                  ruleName: _ruleNameController.text,
-                  deviceId: _selectedDeviceId!,
-                  conditionType: _conditionType,
-                  thresholdValue: _thresholdValue,
-                  comparisonOperator: _conditionType == 'threshold' ? _comparisonOperator : null,
-                  statusValue: _conditionType == 'status_change' ? _statusValue : null,
-                  timeRestrictionStart: _conditionType == 'schedule' && _timeRestrictionStart != null
-                    ? DateTime(now.year, now.month, now.day, _timeRestrictionStart!.hour, _timeRestrictionStart!.minute)
-                    : null,
-                  timeRestrictionEnd: _conditionType == 'schedule' && _timeRestrictionEnd != null
-                    ? DateTime(now.year, now.month, now.day, _timeRestrictionEnd!.hour, _timeRestrictionEnd!.minute)
-                    : null,
-                  daysActive: _conditionType == 'schedule' ? _daysActive : null,
-                  isActive: _isActive,
-                  createdAt: rule?.createdAt ?? now,
-                  updatedAt: now,
-                );
-                
-                bool success;
-                if (rule == null) {
-                  success = await provider.saveAlarmRule(alarmRule);
-                } else {
-                  success = await provider.updateAlarmRule(alarmRule);
-                }
-                
-                if (success) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(rule == null ? 'Rule added successfully' : 'Rule updated successfully')),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () async {
+                  if (_formKey.currentState!.validate()) {
+                    _conditionType = _localConditionType;
+                    
+                    // Close dialog BEFORE async operations
+                    Navigator.of(context).pop();
+                    
+                    // After dialog is closed, perform async operations
+                    final now = DateTime.now();
+                    
+                    final alarmRule = AlarmRuleModel(
+                      ruleId: rule?.ruleId ?? 0, // Will be set by backend for new rule
+                      alarmId: widget.alarmId,
+                      ruleName: _ruleNameController.text,
+                      deviceId: _selectedDeviceId!,
+                      conditionType: _conditionType,
+                      thresholdValue: _thresholdValue,
+                      comparisonOperator: _conditionType == 'threshold' ? _comparisonOperator : null,
+                      statusValue: _conditionType == 'status_change' ? _statusValue : null,
+                      timeRestrictionStart: _conditionType == 'schedule' && _timeRestrictionStart != null
+                        ? DateTime(now.year, now.month, now.day, _timeRestrictionStart!.hour, _timeRestrictionStart!.minute)
+                        : null,
+                      timeRestrictionEnd: _conditionType == 'schedule' && _timeRestrictionEnd != null
+                        ? DateTime(now.year, now.month, now.day, _timeRestrictionEnd!.hour, _timeRestrictionEnd!.minute)
+                        : null,
+                      daysActive: _conditionType == 'schedule' ? _daysActive : null,
+                      isActive: _isActive,
+                      createdAt: rule?.createdAt ?? now,
+                      updatedAt: now,
                     );
+                    
+                    // Use provider outside of the dialog's context
+                    bool success;
+                    try {
+                      if (rule == null) {
+                        success = await provider.saveAlarmRule(alarmRule);
+                      } else {
+                        success = await provider.updateAlarmRule(alarmRule);
+                      }
+                      
+                      if (success) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(rule == null ? 'Rule added successfully' : 'Rule updated successfully')),
+                          );
+                        }
+                      } else {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(rule == null ? 'Failed to add rule' : 'Failed to update rule')),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        
+                          print('Error: ${e.toString()}');
+                      }
+                    }
                   }
-                } else {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(rule == null ? 'Failed to add rule' : 'Failed to update rule')),
-                    );
-                  }
-                }
-              }
-            },
-            child: Text(rule == null ? 'Add' : 'Save'),
-          ),
-        ],
+                },
+                child: Text(rule == null ? 'Add' : 'Save'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
   
-  Widget _buildThresholdFields() {
+  Widget _buildThresholdFields(StateSetter setState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -613,7 +644,7 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
                   const DropdownMenuItem(value: '<>', child: Text('≠')),
                 ],
                 onChanged: (value) {
-                  setState(() {
+                  setState(() {  // Use the dialog's setState
                     _comparisonOperator = value!;
                   });
                 },
@@ -651,7 +682,7 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
     );
   }
   
-  Widget _buildStatusChangeFields() {
+  Widget _buildStatusChangeFields(StateSetter setState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -682,7 +713,7 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
     );
   }
   
-  Widget _buildScheduleFields() {
+  Widget _buildScheduleFields(StateSetter setState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -915,6 +946,95 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
         default:
           _conditionType = 'threshold';
       }
+    });
+  }
+
+  // Add this method to your _AlarmRulesScreenState class
+  void _updateConditionTypeForDialog(int? deviceId, StateSetter setStateDialog) {
+    if (deviceId == null) return;
+    
+    // Find the selected device's type from all possible sources
+    String? deviceType;
+    
+    // Use the stored provider reference
+    final regularDevice = _securityProvider.devices.firstWhere(
+      (d) => d.deviceId == deviceId,
+      orElse: () => SecurityDeviceModel(
+        deviceId: -1,
+        deviceType: 'unknown',
+        name: 'Unknown Device',
+        status: 'offline',
+        isActive: false,
+        lastUpdated: DateTime.now(),
+      ),
+    );
+    
+    if (regularDevice.deviceId != -1) {
+      deviceType = regularDevice.deviceType;
+    }
+    
+    // Check if it's a sensor
+    if (deviceType == null) {
+      final sensor = _securityProvider.sensors.firstWhere(
+        (s) => s.deviceId == deviceId,
+        orElse: () => SensorModel(
+          sensorId: -1,
+          deviceId: -1,
+          sensorType: 'unknown',
+          name: 'Unknown Sensor', 
+          type: '', 
+          unit: '', 
+          minValue: 0, 
+          maxValue: 0, 
+          warningThreshold: 0, 
+          updatedAt: DateTime.now(), 
+          criticalThreshold: 0, 
+          createdAt: DateTime.now(),
+        ),
+      );
+      
+      if (sensor.sensorId != -1) {
+        deviceType = 'sensor';
+      }
+    }
+    
+    // Check if it's a camera
+    if (deviceType == null) {
+      final camera = _securityProvider.cameras.firstWhere(
+        (c) => c.deviceId == deviceId,
+        orElse: () => CameraModel(
+          cameraId: -1,
+          deviceId: -1,
+          name: 'Unknown Sensor',
+          streamUrl: '', 
+          motionDetectionEnabled: false,
+        ),
+      );
+      
+      if (camera.cameraId != -1) {
+        deviceType = 'camera';
+      }
+    }
+    
+    // Use the dialogSetState to update the local condition type
+    // (not the parent's state)
+    String newConditionType = 'threshold'; // Default
+    switch (deviceType?.toLowerCase() ?? '') {
+      case 'sensor':
+        newConditionType = 'threshold';
+        break;
+      case 'camera':
+        newConditionType = 'motion_detected';
+        break;
+      case 'door':
+      case 'window':
+        newConditionType = 'status_change';
+        break;
+    }
+    
+    // Update dialog-specific state
+    setStateDialog(() {
+      _localConditionType = newConditionType;
     });
   }
 }
