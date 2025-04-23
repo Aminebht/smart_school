@@ -28,7 +28,9 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
 
   Future<void> _loadData() async {
@@ -112,8 +114,9 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
     return Consumer<SecurityProvider>(
       builder: (context, provider, _) {
         final alarm = provider.currentAlarmSystem;
+        final isLoading = provider.isLoading;
         
-        if (_isLoading || alarm == null) {
+        if (isLoading || alarm == null) {
           return Scaffold(
             appBar: AppBar(title: const Text('Alarm Details')),
             body: const Center(child: CircularProgressIndicator()),

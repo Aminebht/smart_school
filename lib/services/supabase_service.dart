@@ -1,3 +1,4 @@
+import 'package:smart_school/core/models/alarm_rule_model.dart';
 import 'package:smart_school/core/models/classroom_model.dart';
 import 'package:smart_school/core/models/department_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -890,6 +891,40 @@ class SupabaseService {
     }
   }
 
+  static Future<Map<String, dynamic>> saveAlarmRule(AlarmRuleModel rule) async {
+    final client = await getClient();
+    try {
+      // Important: For insert operations, omit the rule_id field entirely
+      // Let Postgres handle auto-assigning the value
+      final data = {
+        'alarm_id': rule.alarmId,
+        'rule_name': rule.ruleName,
+        'device_id': rule.deviceId,
+        'condition_type': rule.conditionType,
+        'threshold_value': rule.thresholdValue,
+        'comparison_operator': rule.comparisonOperator,
+        'status_value': rule.statusValue,
+        'time_restriction_start': rule.timeRestrictionStart?.toIso8601String(),
+        'time_restriction_end': rule.timeRestrictionEnd?.toIso8601String(),
+        'days_active': rule.daysActive,
+        'is_active': rule.isActive,
+        'created_at': rule.createdAt.toIso8601String(),
+        'updated_at': rule.updatedAt.toIso8601String(),
+      };
+
+      final response = await client
+        .from('alarm_rules')
+        .insert(data)
+        .select()
+        .single();
+      
+      return response;
+    } catch (e) {
+      print('Error saving alarm rule: $e');
+      throw e;
+    }
+  }
+
   // Alarm Events
   static Future<List<Map<String, dynamic>>> getAlarmEvents(int alarmId, {int limit = 20}) async {
     final client = await getClient();
@@ -1051,6 +1086,128 @@ class SupabaseService {
     } catch (e) {
       print('Error updating alarm arm status: $e');
       throw e;
+    }
+  }
+
+  // Corrected getSensors method
+  static Future<List<Map<String, dynamic>>> getSensors() async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('sensors')
+        .select('''
+          *,
+          devices!device_id(
+            device_id,
+            device_type,
+            model,
+            location,
+            status,
+            department_id,
+            classroom_id,
+            classrooms:classroom_id(classroom_id, name)
+          )
+        ''')
+        .order('sensor_id');
+      
+      // Process the response to include additional useful info
+      return List<Map<String, dynamic>>.from(response).map((sensor) {
+        final device = sensor['devices'];
+        return {
+          ...sensor,
+          'device_model': device['model'],
+          'device_location': device['location'],
+          'device_status': device['status'],
+          'classroom_id': device['classroom_id'],
+          'classroom_name': device['classrooms'] != null ? device['classrooms']['name'] : null,
+          'department_id': device['department_id']
+        };
+      }).toList();
+    } catch (e) {
+      print('Error getting sensors: $e');
+      return [];
+    }
+  }
+
+  // Corrected getCameras method
+  static Future<List<Map<String, dynamic>>> getCameras() async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('cameras')
+        .select('''
+          *,
+          devices!device_id(
+            device_id,
+            device_type,
+            model,
+            location, 
+            status,
+            department_id,
+            classroom_id,
+            classrooms:classroom_id(classroom_id, name),
+            departments:department_id(department_id, name)
+          )
+        ''')
+        .order('camera_id');
+      
+      // Process the response to include additional useful info
+      return List<Map<String, dynamic>>.from(response).map((camera) {
+        final device = camera['devices'];
+        return {
+          ...camera,
+          'device_model': device['model'],
+          'device_location': device['location'],
+          'device_status': device['status'],
+          'classroom_id': device['classroom_id'],
+          'classroom_name': device['classrooms'] != null ? device['classrooms']['name'] : null,
+          'department_id': device['department_id'],
+          'department_name': device['departments'] != null ? device['departments']['name'] : null
+        };
+      }).toList();
+    } catch (e) {
+      print('Error getting cameras: $e');
+      return [];
+    }
+  }
+
+  // Corrected getActuators method
+  static Future<List<Map<String, dynamic>>> getActuators() async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('actuators')
+        .select('''
+          *,
+          devices!device_id(
+            device_id,
+            device_type,
+            model,
+            location,
+            status,
+            department_id,
+            classroom_id,
+            classrooms:classroom_id(classroom_id, name)
+          )
+        ''')
+        .order('actuator_id');
+      
+      // Process the response to include additional useful info
+      return List<Map<String, dynamic>>.from(response).map((actuator) {
+        final device = actuator['devices'];
+        return {
+          ...actuator,
+          'device_model': device['model'],
+          'device_location': device['location'],
+          'device_status': device['status'],
+          'classroom_id': device['classroom_id'],
+          'classroom_name': device['classrooms'] != null ? device['classrooms']['name'] : null,
+          'department_id': device['department_id']
+        };
+      }).toList();
+    } catch (e) {
+      print('Error getting actuators: $e');
+      return [];
     }
   }
 }

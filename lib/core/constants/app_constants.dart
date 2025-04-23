@@ -19,6 +19,7 @@ class AppColors {
   static const Color success = Color(0xFF426A5A);
   static const Color text = Color(0xFF212121);
   static const Color textSecondary = Color(0xFF757575);
+  static const Color info = Color(0xFF2196F3); // Added 'info' color
 }
 
 // Status indicators

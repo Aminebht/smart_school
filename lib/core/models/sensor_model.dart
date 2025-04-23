@@ -14,6 +14,7 @@ class SensorModel {
   final DateTime createdAt;
   final DateTime updatedAt;
   final DeviceStatus status;
+  final String? sensorType;
 
   SensorModel({
     required this.sensorId,
@@ -29,6 +30,7 @@ class SensorModel {
     required this.createdAt,
     required this.updatedAt,
     this.status = DeviceStatus.normal,
+    this.sensorType,
   });
 
   factory SensorModel.fromJson(Map<String, dynamic> json) {
@@ -36,7 +38,7 @@ class SensorModel {
       sensorId: json['sensor_id'] ?? 0,
       deviceId: json['device_id'] ?? 0,
       classroomId: json['classroom_id'],
-      name: json['name'] ?? 'unknown',
+      name: json['name'] ?? json['device_model'] ?? 'Unknown Sensor',
       type: json['sensor_type'] ?? 'unknown',
       unit: json['measurement_unit'] ?? '',
       minValue: (json['min_threshold'] ?? 0).toDouble(),
@@ -45,6 +47,7 @@ class SensorModel {
       criticalThreshold: json['critical_threshold']?.toDouble() ?? 90.0,
       createdAt: json['created_at'] != null ? DateTime.parse(json['created_at']) : DateTime.now(),
       updatedAt: json['updated_at'] != null ? DateTime.parse(json['updated_at']) : DateTime.now(),
+      sensorType: json['sensor_type'] ?? 'unknown',
     );
   }
 

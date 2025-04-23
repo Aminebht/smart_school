@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_school/core/models/camera_model.dart';
+import 'package:smart_school/core/models/sensor_model.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/alarm_rule_model.dart';
 import '../../../core/models/security_device_model.dart';
@@ -32,11 +34,25 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
   TimeOfDay? _timeRestrictionEnd;
   String _daysActive = 'mon,tue,wed,thu,fri';
   bool _isActive = true;
+
+  // Add this to your _AlarmRulesScreenState class to store a reference to your provider
+  late SecurityProvider _securityProvider;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Store a reference to the provider that we can safely use later
+    _securityProvider = Provider.of<SecurityProvider>(context, listen: false);
+  }
   
   @override
   void initState() {
     super.initState();
-    _loadData();
+    
+    // Use addPostFrameCallback to delay data loading until after the build is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadData();
+    });
   }
   
   @override
@@ -50,16 +66,24 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
     
     try {
       final provider = Provider.of<SecurityProvider>(context, listen: false);
+      
+      // Load rules specific to this alarm
       await provider.loadAlarmRules(widget.alarmId);
-      // Pass the required alarmId parameter
-      await provider.loadSecurityDevices(alarmId: widget.alarmId);
+      
+      // Load ALL available devices for selection in the form
+      // Pass 0 or null to get all devices, not just those associated with this alarm
+      await provider.loadSecurityDevices(alarmId: 0); // Use 0 to get all devices
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load rules: ${e.toString()}')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load rules: ${e.toString()}')),
+        );
+      }
     }
     
-    setState(() => _isLoading = false);
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -293,12 +317,14 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
       _loadRuleValues(rule);
     }
     
+    // Get the provider before entering the dialog builder
     final provider = Provider.of<SecurityProvider>(context, listen: false);
-    final devices = provider.devices;
     
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
+        // Use dialogContext inside the builder, not the outer context
+        // But use the provider instance we already grabbed
         title: Text(rule == null ? 'Add Rule' : 'Edit Rule'),
         content: SingleChildScrollView(
           child: Form(
@@ -324,19 +350,92 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
                 
                 // Device selection
                 DropdownButtonFormField<int>(
-                  value: _selectedDeviceId,
                   decoration: const InputDecoration(
-                    labelText: 'Select Device',
+                    labelText: 'Device',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.devices),
                   ),
-                  items: devices.map((device) {
-                    return DropdownMenuItem<int>(
-                      value: device.deviceId,
-                      child: Text(device.name),
-                    );
-                  }).toList(),
+                  value: _selectedDeviceId,
+                  hint: const Text('Select a device'),
+                  isExpanded: true, // Make dropdown take full width
+                  items: [
+                    // Add general security devices
+                    ...provider.devices.map((device) {
+                      return DropdownMenuItem<int>(
+                        value: device.deviceId,
+                        child: Row(
+                          children: [
+                            Icon(
+                              _getDeviceIcon(device.deviceType),
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${device.name} (${device.deviceType})',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    
+                    // Add sensors (if they have a different ID scheme)
+                    ...provider.sensors.map((sensor) {
+                      final deviceId = sensor.deviceId; // Assuming sensors have deviceId property
+                      return DropdownMenuItem<int>(
+                        value: deviceId,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.sensors,
+                              size: 18, 
+                              color: AppColors.info,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${sensor.name} (${sensor.sensorType} sensor)',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    
+                    // Add cameras (if they have a different ID scheme)
+                    ...provider.cameras.map((camera) {
+                      final deviceId = camera.deviceId; // Assuming cameras have deviceId property
+                      return DropdownMenuItem<int>(
+                        value: deviceId,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.videocam,
+                              size: 18,
+                              color: AppColors.warning,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${camera.name} (camera)',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
                   onChanged: (value) {
                     setState(() {
                       _selectedDeviceId = value;
+                      // When device changes, update the available condition types
+                      // based on the selected device type
+                      _updateAvailableConditionTypes();
                     });
                   },
                   validator: (value) {
@@ -723,5 +822,120 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
       days.remove(day);
     }
     return days.where((d) => d.isNotEmpty).join(',');
+  }
+  
+  void _updateAvailableConditionTypes() {
+    if (_selectedDeviceId == null) return;
+    
+    // Find the selected device's type from all possible sources
+    String? deviceType;
+    
+    // Use the stored provider reference instead of accessing through context
+    // Check if it's a regular device
+    final regularDevice = _securityProvider.devices.firstWhere(
+      (d) => d.deviceId == _selectedDeviceId,
+      orElse: () => SecurityDeviceModel(
+        deviceId: -1,
+        deviceType: 'unknown',
+        name: 'Unknown Device',
+        status: 'offline',
+        isActive: false,
+        lastUpdated: DateTime.now(),
+      ),
+    );
+    
+    if (regularDevice.deviceId != -1) {
+      deviceType = regularDevice.deviceType;
+    }
+    
+    // Check if it's a sensor - also use the stored provider
+    if (deviceType == null) {
+      final sensor = _securityProvider.sensors.firstWhere(
+        (s) => s.deviceId == _selectedDeviceId,
+        orElse: () => SensorModel(
+          sensorId: -1,
+          deviceId: -1,
+          sensorType: 'unknown',
+          name: 'Unknown Sensor', 
+          type: '', 
+          unit: '', 
+          minValue: 0, 
+          maxValue: 0, 
+          warningThreshold: 0, 
+          updatedAt: DateTime.now(), 
+          criticalThreshold: 0, 
+          createdAt: DateTime.now(),
+        ),
+      );
+      
+      if (sensor.sensorId != -1) {
+        deviceType = 'sensor';
+      }
+    }
+    
+    // Check if it's a camera - also use the stored provider
+    if (deviceType == null) {
+      final camera = _securityProvider.cameras.firstWhere(
+        (c) => c.deviceId == _selectedDeviceId,
+        orElse: () => CameraModel(
+          cameraId: -1,
+          deviceId: -1,
+          name: 'Unknown Sensor',
+          streamUrl: '', 
+          motionDetectionEnabled: false,
+        ),
+      );
+      
+      if (camera.cameraId != -1) {
+        deviceType = 'camera';
+      }
+    }
+    
+    // Default to most common condition type if we couldn't determine the device type
+    if (deviceType == null) {
+      setState(() {
+        _conditionType = 'threshold';
+      });
+      return;
+    }
+    
+    // Set appropriate condition type based on device type
+    setState(() {
+      switch (deviceType!.toLowerCase()) {
+        case 'sensor':
+          _conditionType = 'threshold';
+          break;
+        case 'camera':
+          _conditionType = 'motion_detected';
+          break;
+        case 'door':
+        case 'window':
+          _conditionType = 'status_change';
+          break;
+        default:
+          _conditionType = 'threshold';
+      }
+    });
+  }
+}
+
+IconData _getDeviceIcon(String deviceType) {
+  switch (deviceType.toLowerCase()) {
+    case 'sensor':
+      return Icons.sensors;
+    case 'camera':
+      return Icons.videocam;
+    case 'actuator':
+      return Icons.flash_on;
+    case 'motion':
+      return Icons.motion_photos_on;
+    case 'door':
+      return Icons.sensor_door;
+    case 'window':
+      return Icons.window;
+    case 'temperature':
+      return Icons.thermostat;
+    default:
+      return Icons.devices_other;
   }
 }

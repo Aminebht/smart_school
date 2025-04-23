@@ -20,50 +20,62 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    final provider = Provider.of<SecurityProvider>(context, listen: false);
-    await provider.refreshSecurityData();
+    // Schedule the data loading for after the first frame is rendered
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = Provider.of<SecurityProvider>(context, listen: false);
+      provider.loadSecurityDevices(alarmId: 0);
+      provider.loadAlarmSystems();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Security Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.event_note),
-            tooltip: 'View All Events',
-            onPressed: () {
-              Navigator.pushNamed(context, AppRoutes.securityEvents);
+    // Don't call methods that update state here
+    return Consumer<SecurityProvider>(
+      builder: (context, provider, _) {
+        // Use the data, don't load it here
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Security Dashboard'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.event_note),
+                tooltip: 'View All Events',
+                onPressed: () {
+                  Navigator.pushNamed(context, AppRoutes.securityEvents);
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                tooltip: 'Refresh',
+                onPressed: () {
+                  provider.loadSecurityDevices(alarmId: 0);
+                  provider.loadAlarmSystems();
+                },
+              ),
+            ],
+          ),
+          body: RefreshIndicator(
+            onRefresh: () async {
+              provider.loadSecurityDevices(alarmId: 0);
+              provider.loadAlarmSystems();
             },
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-            onPressed: _loadData,
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: _loadData,
-        child: Consumer<SecurityProvider>(
-          builder: (context, provider, child) {
-            if (provider.isLoading && provider.devices.isEmpty) {
-              return const Center(child: CircularProgressIndicator());
-            }
+            child: Consumer<SecurityProvider>(
+              builder: (context, provider, child) {
+                if (provider.isLoading && provider.devices.isEmpty) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-            if (provider.errorMessage != null && provider.devices.isEmpty) {
-              return _buildErrorView(context, provider);
-            }
+                if (provider.errorMessage != null && provider.devices.isEmpty) {
+                  return _buildErrorView(context, provider);
+                }
 
-            return _buildDashboard(context, provider);
-          },
-        ),
-      ),
+                return _buildDashboard(context, provider);
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -284,7 +296,10 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: _loadData,
+            onPressed: () {
+              provider.loadSecurityDevices(alarmId: 0);
+              provider.loadAlarmSystems();
+            },
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
           ),

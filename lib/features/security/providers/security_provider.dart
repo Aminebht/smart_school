@@ -140,20 +140,31 @@ class SecurityProvider extends ChangeNotifier {
     }
   }
 
-  // Load security devices
+  // Update this method in your SecurityProvider class
   Future<void> loadSecurityDevices({bool showLoading = true, int? alarmId}) async {
     if (showLoading) {
       _isLoading = true;
-      notifyListeners();
     }
 
     try {
-      // Modify to handle the optional parameter
+      // Load all devices
       final devicesJson = alarmId != null && alarmId > 0 
           ? await SupabaseService.getSecurityDevicesByAlarm(alarmId)
           : await SupabaseService.getSecurityDevices();
           
       _devices = devicesJson.map((json) => SecurityDeviceModel.fromJson(json)).toList();
+
+      // Additionally load all sensors - regardless of alarm association
+      final sensorsJson = await SupabaseService.getSensors();
+      _sensors = sensorsJson.map((json) => SensorModel.fromJson(json)).toList();
+
+      // Additionally load all cameras - regardless of alarm association
+      final camerasJson = await SupabaseService.getCameras();
+      _cameras = camerasJson.map((json) => CameraModel.fromJson(json)).toList();
+
+      // Additionally load all actuators - regardless of alarm association
+      final actuatorsJson = await SupabaseService.getActuators();
+      _actuators = actuatorsJson.map((json) => ActuatorModel.fromJson(json)).toList();
 
       // Calculate stats
       _updateSecurityStats();
@@ -161,14 +172,12 @@ class SecurityProvider extends ChangeNotifier {
       if (showLoading) {
         _isLoading = false;
       }
-      if (!showLoading) return;
       notifyListeners();
     } catch (e) {
       _errorMessage = 'Failed to load security devices: ${e.toString()}';
       if (showLoading) {
         _isLoading = false;
       }
-      if (!showLoading) return;
       notifyListeners();
     }
   }
@@ -365,10 +374,9 @@ class SecurityProvider extends ChangeNotifier {
     }
   }
 
-  // Load single alarm system by ID
+  // Update the loadAlarmSystem method in SecurityProvider class
   Future<void> loadAlarmSystem(int alarmId) async {
     _isLoading = true;
-    notifyListeners();
     
     try {
       final alarm = await SupabaseService.getAlarmSystemById(alarmId);
@@ -389,8 +397,6 @@ class SecurityProvider extends ChangeNotifier {
             .toList();
       }
       
-      // Similarly for other collections
-      
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -401,10 +407,9 @@ class SecurityProvider extends ChangeNotifier {
     }
   }
 
-  // Load alarm rules for a specific alarm
+  // Fix the loadAlarmRules method in SecurityProvider
   Future<void> loadAlarmRules(int alarmId) async {
     _isLoading = true;
-    notifyListeners();
     
     try {
       final rulesJson = await SupabaseService.getAlarmRules(alarmId);
@@ -422,33 +427,22 @@ class SecurityProvider extends ChangeNotifier {
   // Save a new alarm rule
   Future<bool> saveAlarmRule(AlarmRuleModel rule) async {
     try {
-      final ruleId = await SupabaseService.createAlarmRule(rule.toJson());
-      if (ruleId != null) {
-        // Create a new rule with the assigned ID
-        final newRule = AlarmRuleModel(
-          ruleId: ruleId,
-          alarmId: rule.alarmId,
-          ruleName: rule.ruleName,
-          deviceId: rule.deviceId,
-          conditionType: rule.conditionType,
-          thresholdValue: rule.thresholdValue,
-          comparisonOperator: rule.comparisonOperator,
-          statusValue: rule.statusValue,
-          timeRestrictionStart: rule.timeRestrictionStart,
-          timeRestrictionEnd: rule.timeRestrictionEnd,
-          daysActive: rule.daysActive,
-          isActive: rule.isActive,
-          createdAt: rule.createdAt,
-          updatedAt: rule.updatedAt,
-        );
-        
-        _alarmRules.add(newRule);
-        notifyListeners();
-        return true;
-      }
-      return false;
+      _isLoading = true;
+      notifyListeners();
+      
+      // Save the rule
+      final savedRule = await SupabaseService.saveAlarmRule(rule);
+      
+      // Create model from response and add to list
+      final newRule = AlarmRuleModel.fromJson(savedRule);
+      _alarmRules.add(newRule);
+      
+      _isLoading = false;
+      notifyListeners();
+      return true;
     } catch (e) {
-      _errorMessage = 'Failed to save rule: ${e.toString()}';
+      _errorMessage = 'Failed to save alarm rule: ${e.toString()}';
+      _isLoading = false;
       notifyListeners();
       return false;
     }

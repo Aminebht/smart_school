@@ -20,6 +20,7 @@ import 'features/security/screens/alarm_systems_screen.dart';
 import 'features/security/screens/alarm_edit_screen.dart';
 import 'features/security/screens/alarm_events_screen.dart';
 import 'features/security/screens/alarm_rules_screen.dart';
+import 'features/security/screens/alarm_detail_screen.dart';
 import 'services/supabase_service.dart';
 
 void main() async {
@@ -140,14 +141,20 @@ class SmartSchoolApp extends StatelessWidget {
           }
           if (settings.name == AppRoutes.alarmSystems && settings.arguments != null) {
             return MaterialPageRoute(
-              builder: (context) => AlarmSystemsScreen(
-              ),
+              builder: (context) => AlarmSystemsScreen(),
             );
           }
          
           if (settings.name == AppRoutes.alarmEvents && settings.arguments != null) {
             return MaterialPageRoute(
               builder: (context) => AlarmEventsScreen(
+                alarmId: settings.arguments as int,
+              ),
+            );
+          }
+          if (settings.name == AppRoutes.alarmDetail && settings.arguments != null) {
+            return MaterialPageRoute(
+              builder: (context) => AlarmDetailScreen(
                 alarmId: settings.arguments as int,
               ),
             );
