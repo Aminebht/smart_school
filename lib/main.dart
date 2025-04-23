@@ -13,9 +13,13 @@ import 'features/department/screens/department_list_screen.dart';
 import 'features/department/screens/department_detail_screen.dart';
 import 'features/classroom/screens/classroom_detail_screen.dart';
 import 'features/camera/screens/camera_view_screen.dart';
-import 'features/security/screens/security_dashboard_screen.dart'; // Add this import
-import 'features/security/screens/security_events_screen.dart'; // Add this import
-import 'features/security/providers/security_provider.dart'; // Add this import
+import 'features/security/screens/security_dashboard_screen.dart';
+import 'features/security/screens/security_events_screen.dart';
+import 'features/security/providers/security_provider.dart';
+import 'features/security/screens/alarm_systems_screen.dart';
+import 'features/security/screens/alarm_edit_screen.dart';
+import 'features/security/screens/alarm_events_screen.dart';
+import 'features/security/screens/alarm_rules_screen.dart';
 import 'services/supabase_service.dart';
 
 void main() async {
@@ -42,7 +46,7 @@ class SmartSchoolApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider.value(value: authProvider),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
-        ChangeNotifierProvider(create: (_) => SecurityProvider()), // Add security provider
+        ChangeNotifierProvider(create: (_) => SecurityProvider()),
         // Add other providers here
       ],
       child: MaterialApp(
@@ -94,8 +98,9 @@ class SmartSchoolApp extends StatelessWidget {
           AppRoutes.resetPassword: (context) => const ResetPasswordScreen(),
           AppRoutes.dashboard: (context) => const DashboardScreen(),
           AppRoutes.department: (context) => const DepartmentListScreen(),
-          AppRoutes.security: (context) => const SecurityDashboardScreen(), // Add security route
-          AppRoutes.securityEvents: (context) => const SecurityEventsScreen(), // Add security events route
+          AppRoutes.security: (context) => const SecurityDashboardScreen(),
+          AppRoutes.securityEvents: (context) => const SecurityEventsScreen(),
+          AppRoutes.alarmSystems: (context) => const AlarmSystemsScreen(),
           // Add other routes as they are developed
         },
         onGenerateRoute: (settings) {
@@ -117,6 +122,33 @@ class SmartSchoolApp extends StatelessWidget {
             return MaterialPageRoute(
               builder: (context) => CameraViewScreen(
                 camera: settings.arguments as CameraModel,
+              ),
+            );
+          }
+          if (settings.name == AppRoutes.alarmEdit) {
+            if (settings.arguments != null) {
+              return MaterialPageRoute(
+                builder: (context) => AlarmEditScreen(
+                  alarmId: settings.arguments as int,
+                ),
+              );
+            } else {
+              return MaterialPageRoute(
+                builder: (context) => const AlarmEditScreen(),
+              );
+            }
+          }
+          if (settings.name == AppRoutes.alarmSystems && settings.arguments != null) {
+            return MaterialPageRoute(
+              builder: (context) => AlarmSystemsScreen(
+              ),
+            );
+          }
+         
+          if (settings.name == AppRoutes.alarmEvents && settings.arguments != null) {
+            return MaterialPageRoute(
+              builder: (context) => AlarmEventsScreen(
+                alarmId: settings.arguments as int,
               ),
             );
           }

@@ -44,5 +44,12 @@ class AppRoutes {
   // Security routes
   static const security = '/security';
   static const securityEvents = '/security_events';
-  static const accessLogs = '/access_logs';
+  
+  // Alarm routes
+  static const alarmSystems = '/alarm_systems';
+  static const alarmDetail = '/alarm_detail';
+  static const alarmEdit = '/alarm_edit';
+  static const alarmRules = '/alarm_rules';
+  static const alarmActions = '/alarm_actions';
+  static const alarmEvents = '/alarm_events';
 }

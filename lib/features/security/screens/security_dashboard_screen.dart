@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_school/core/models/alarm_system_model.dart';
 import '../providers/security_provider.dart';
 import '../widgets/security_status_card.dart';
 import '../widgets/security_event_list.dart';
@@ -125,27 +126,142 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
             compact: true,
             maxEvents: 5,
           ),
-          
           const SizedBox(height: 24),
-          
-          // Alarm System Controls Section
-          const Text(
-            'Alarm System',
-            style: TextStyle(
-              fontSize: 18, 
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          AlarmControlWidget(
-            isActive: provider.alarmSystemActive,
-            onToggle: (active) {
-              provider.toggleAlarmSystem(active: active);
-            },
-          ),
+          _buildAlarmSystemsSection(context, provider),
           
           const SizedBox(height: 40),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAlarmSystemsSection(BuildContext context, SecurityProvider provider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Alarm Systems',
+              style: TextStyle(
+                fontSize: 18, 
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, AppRoutes.alarmSystems);
+              },
+              icon: const Icon(Icons.view_list),
+              label: const Text('Manage'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (provider.alarmSystems.isEmpty)
+          _buildEmptyAlarmSystems(context)
+        else
+          _buildAlarmSystemsPreview(context, provider),
+      ],
+    );
+  }
+
+  Widget _buildEmptyAlarmSystems(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.security_outlined,
+              size: 48,
+              color: AppColors.textSecondary,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No alarm systems configured',
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Create alarm systems to protect your school',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.pushNamed(context, AppRoutes.alarmEdit);
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('Create Alarm System'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAlarmSystemsPreview(BuildContext context, SecurityProvider provider) {
+    // Display up to 3 alarm systems as preview
+    final previewSystems = provider.alarmSystems.take(3).toList();
+    
+    return Column(
+      children: [
+        ...previewSystems.map((alarm) => _buildAlarmPreviewCard(context, alarm)),
+        if (provider.alarmSystems.length > 3)
+          TextButton(
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.alarmSystems);
+            },
+            child: Text('View all ${provider.alarmSystems.length} alarm systems'),
+          ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () {
+            Navigator.pushNamed(context, AppRoutes.alarmEdit);
+          },
+          icon: const Icon(Icons.add),
+          label: const Text('Add New Alarm System'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAlarmPreviewCard(BuildContext context, AlarmSystemModel alarm) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: alarm.statusColor.withOpacity(0.5),
+          width: 1,
+        ),
+      ),
+      child: ListTile(
+        leading: Icon(alarm.statusIcon, color: alarm.statusColor),
+        title: Text(
+          alarm.name,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          alarm.displayStatus,
+          style: TextStyle(color: alarm.statusColor),
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          Navigator.pushNamed(
+            context, 
+            AppRoutes.alarmDetail,
+            arguments: alarm.alarmId,
+          );
+        },
       ),
     );
   }

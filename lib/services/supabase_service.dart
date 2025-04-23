@@ -1,3 +1,5 @@
+import 'package:smart_school/core/models/classroom_model.dart';
+import 'package:smart_school/core/models/department_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../core/constants/app_constants.dart';
 
@@ -231,14 +233,7 @@ class SupabaseService {
     }
   }
   
-  // Department and classroom methods
-  static Future<List<Map<String, dynamic>>> getDepartments() async {
-    final response = await client
-        .from('departments')
-        .select('*');
-    
-    return response;
-  }
+
   
   static Future<List<Map<String, dynamic>>> getClassroomsByDepartment(String departmentId) async {
     final response = await client
@@ -531,6 +526,40 @@ class SupabaseService {
     }
   }
 
+  // Add this method to your SupabaseService class
+  static Future<List<Map<String, dynamic>>> getSecurityDevicesByAlarm(int alarmId) async {
+    final client = await getClient();
+    try {
+      // First get the devices associated with this alarm through rules
+      final rulesResponse = await client
+        .from('alarm_rules')
+        .select('device_id')
+        .eq('alarm_id', alarmId)
+        .order('device_id');
+      
+      // Extract device IDs from rules
+      final deviceIds = (rulesResponse as List).map((rule) => rule['device_id'] as int).toSet().toList();
+      
+      if (deviceIds.isEmpty) {
+        return [];
+      }
+      
+      // Then fetch the actual devices
+      final devicesResponse = await client
+        .from('devices')
+        .select('''
+          *,
+          classrooms:classroom_id (classroom_id, name)
+        ''')
+        .filter('device_id', 'in', deviceIds);
+      
+      return List<Map<String, dynamic>>.from(devicesResponse);
+    } catch (e) {
+      print('Error getting security devices by alarm: $e');
+      return [];
+    }
+  }
+
   // Helper method to map device status to security status
   static String _mapDeviceStatusToSecurity(String? status) {
     if (status == null) return 'offline';
@@ -552,36 +581,76 @@ class SupabaseService {
     final client = await getClient();
     
     try {
+      // Correctly reference the foreign keys using the proper syntax
       final response = await client
-        .from('motion_events') // Using motion_events as a proxy for security events
+        .from('alarm_events')
         .select('''
           *,
-          devices:device_id (
-            device_id,
-            name,
-            classroom_id
-          )
+          devices!triggered_by_device_id(*),
+          alarm_systems!alarm_id(*),
+          alarm_rules!rule_id(*)
         ''')
-        .order('timestamp', ascending: false)
+        .order('triggered_at', ascending: false)
         .limit(limit);
 
-      // We'll transform motion events into security events with more details
+      // Transform the events into a more useful format
       return (response as List).map((event) {
         final device = event['devices'];
+        final alarm = event['alarm_systems'];
+        final rule = event['alarm_rules'];
         
         return {
           'event_id': event['event_id'],
-          'device_id': event['device_id'],
+          'alarm_id': event['alarm_id'],
+          'alarm_name': alarm != null ? alarm['name'] : 'Unknown Alarm',
+          'rule_id': event['rule_id'],
+          'rule_name': rule != null ? rule['rule_name'] : 'Unknown Rule',
+          'device_id': event['triggered_by_device_id'],
           'device_name': device != null ? device['name'] : 'Unknown Device',
-          'event_type': 'motion_detected', // In a real app, this would vary
-          'description': 'Motion detected in the area',
-          'timestamp': event['timestamp'],
-          'is_acknowledged': false, // This field might not exist in your actual DB
+          'device_type': device != null ? device['device_type'] : 'unknown',
+          'event_type': _getEventTypeFromTrigger(event),
+          'description': _getEventDescription(event, device, rule),
+          'trigger_value': event['trigger_value'],
+          'trigger_status': event['trigger_status'],
+          'timestamp': event['triggered_at'],
+          'acknowledged': event['acknowledged'] ?? false,
+          'acknowledged_at': event['acknowledged_at'],
         };
       }).toList();
     } catch (e) {
       print('Error getting security events: $e');
+      // Return empty list instead of throwing to avoid crashing the app
       return [];
+    }
+  }
+
+  // Helper methods to format event data
+  static String _getEventTypeFromTrigger(Map<String, dynamic> event) {
+    if (event['trigger_status'] != null) {
+      return 'status_change';
+    } else if (event['trigger_value'] != null) {
+      return 'threshold';
+    } else {
+      return 'alarm_triggered';
+    }
+  }
+
+  static String _getEventDescription(
+    Map<String, dynamic> event, 
+    Map<String, dynamic>? device, 
+    Map<String, dynamic>? rule
+  ) {
+    final deviceName = device != null ? device['name'] : 'Unknown device';
+    final ruleName = rule != null ? rule['rule_name'] : '';
+    
+    if (event['trigger_status'] != null) {
+      return 'Status changed to ${event['trigger_status']} on $deviceName';
+    } else if (event['trigger_value'] != null) {
+      return 'Threshold value ${event['trigger_value']} detected on $deviceName';
+    } else if (ruleName.isNotEmpty) {
+      return 'Rule "$ruleName" triggered on $deviceName';
+    } else {
+      return 'Alarm triggered by $deviceName';
     }
   }
 
@@ -631,5 +700,357 @@ class SupabaseService {
   static Future<void> setAlarmSystemStatus(String status) async {
     // In a real app, you'd update this in your database
     print('Setting alarm system status to: $status');
+  }
+
+  // Alarm Systems
+  static Future<List<Map<String, dynamic>>> getAlarmSystems() async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('alarm_systems')
+        .select('*, departments:department_id(*), classrooms:classroom_id(*)')
+        .order('created_at');
+      
+      return response;
+    } catch (e) {
+      print('Error getting alarm systems: $e');
+      throw e;
+    }
+  }
+
+  static Future<Map<String, dynamic>> getAlarmSystemById(int alarmId) async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('alarm_systems')
+        .select('*, departments:department_id(*), classrooms:classroom_id(*)')
+        .eq('alarm_id', alarmId)
+        .single();
+      
+      // Add default empty arrays for related data that might be missing
+      final result = Map<String, dynamic>.from(response);
+      
+      // Add default empty collections if they're not present
+      if (!result.containsKey('devices')) {
+        result['devices'] = [];
+        print('! No devices found in JSON');
+      }
+      
+      if (!result.containsKey('sensors')) {
+        result['sensors'] = [];
+        print('! No sensors found in JSON');
+      }
+      
+      if (!result.containsKey('actuators')) {
+        result['actuators'] = [];
+        print('! No actuators found in JSON');
+      }
+      
+      if (!result.containsKey('cameras')) {
+        result['cameras'] = [];
+        print('! No cameras found in JSON');
+      }
+      
+      if (!result.containsKey('sensor_readings')) {
+        result['sensor_readings'] = [];
+        print('! No sensor readings found in JSON');
+      }
+      
+      return result;
+    } catch (e) {
+      print('Error getting alarm system details: $e');
+      throw e;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> getAlarmById(int alarmId) async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('alarm_systems')
+        .select('*')
+        .eq('alarm_id', alarmId)
+        .single();
+      
+      return response;
+    } catch (e) {
+      print('Error getting alarm by ID: $e');
+      return null;
+    }
+  }
+
+  static Future<Map<String, dynamic>?> createAlarmSystem(Map<String, dynamic> data) async {
+    final client = await getClient();
+    try {
+      // Make sure alarm_id is not included in the data
+      data.remove('alarm_id');
+      
+      // Also remove timestamps to let the database handle them
+      data.remove('created_at');
+      data.remove('updated_at');
+      
+      final response = await client
+        .from('alarm_systems')
+        .insert(data)
+        .select()
+        .single();
+      
+      return response;
+    } catch (e) {
+      print('Error creating alarm system: $e');
+      throw e;
+    }
+  }
+
+  static Future<bool> updateAlarmSystem(int alarmId, Map<String, dynamic> data) async {
+    final client = await getClient();
+    try {
+      final response =await client
+        .from('alarm_systems')
+        .update(data)
+        .eq('alarm_id', alarmId);
+        return response;
+    } catch (e) {
+      print('Error updating alarm system: $e');
+      throw e;
+    }
+  }
+
+  static Future<void> deleteAlarmSystem(int alarmId) async {
+    final client = await getClient();
+    try {
+      await client
+        .from('alarm_systems')
+        .delete()
+        .eq('alarm_id', alarmId);
+    } catch (e) {
+      print('Error deleting alarm system: $e');
+      throw e;
+    }
+  }
+
+  // Alarm Rules
+  static Future<List<Map<String, dynamic>>> getAlarmRules(int alarmId) async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('alarm_rules')
+        .select('*, devices:device_id(*)')
+        .eq('alarm_id', alarmId)
+        .order('created_at');
+      
+      return response;
+    } catch (e) {
+      print('Error getting alarm rules: $e');
+      throw e;
+    }
+  }
+
+  static Future<int> createAlarmRule(Map<String, dynamic> data) async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('alarm_rules')
+        .insert(data)
+        .select('rule_id')
+        .single();
+      
+      return response['rule_id'];
+    } catch (e) {
+      print('Error creating alarm rule: $e');
+      throw e;
+    }
+  }
+
+  static Future<bool> updateAlarmRule(int ruleId, Map<String, dynamic> data) async {
+    final client = await getClient();
+    try {
+      final response =await client
+        .from('alarm_rules')
+        .update(data)
+        .eq('rule_id', ruleId);
+        return response;
+    } catch (e) {
+      print('Error updating alarm rule: $e');
+      throw e;
+    }
+  }
+
+  static Future<bool> deleteAlarmRule(int ruleId) async {
+    final client = await getClient();
+    try {
+      final response =await client
+        .from('alarm_rules')
+        .delete()
+        .eq('rule_id', ruleId);
+        return response;
+    } catch (e) {
+      print('Error deleting alarm rule: $e');
+      throw e;
+    }
+  }
+
+  // Alarm Events
+  static Future<List<Map<String, dynamic>>> getAlarmEvents(int alarmId, {int limit = 20}) async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('alarm_events')
+        .select('*, alarm_systems:alarm_id(*), alarm_rules:rule_id(*), devices:triggered_by_device_id(*)')
+        .eq('alarm_id', alarmId)
+        .order('triggered_at', ascending: false)
+        .limit(limit);
+      
+      return response;
+    } catch (e) {
+      print('Error getting alarm events: $e');
+      throw e;
+    }
+  }
+
+  static Future<void> acknowledgeAlarmEvent(int eventId) async {
+    final client = await getClient();
+    try {
+      await client
+        .from('alarm_events')
+        .update({
+          'acknowledged': true,
+          'acknowledged_at': DateTime.now().toIso8601String(),
+          'acknowledged_by_user_id': getCurrentUserId(),
+        })
+        .eq('event_id', eventId);
+    } catch (e) {
+      print('Error acknowledging alarm event: $e');
+      throw e;
+    }
+  }
+
+  // Alarm Actions
+  static Future<List<Map<String, dynamic>>> getAlarmActions(int alarmId) async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('alarm_actions')
+        .select('*, actuators:actuator_id(*)')
+        .eq('alarm_id', alarmId)
+        .order('created_at');
+      
+      return response;
+    } catch (e) {
+      print('Error getting alarm actions: $e');
+      throw e;
+    }
+  }
+
+  static Future<int> createAlarmAction(Map<String, dynamic> data) async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('alarm_actions')
+        .insert(data)
+        .select('action_id')
+        .single();
+      
+      return response['action_id'];
+    } catch (e) {
+      print('Error creating alarm action: $e');
+      throw e;
+    }
+  }
+
+  static Future<bool> updateAlarmAction(int actionId, Map<String, dynamic> data) async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('alarm_actions')
+        .update(data)
+        .eq('action_id', actionId);
+        return response;
+    } catch (e) {
+      print('Error updating alarm action: $e');
+      throw e;
+    }
+  }
+
+  static Future<bool> deleteAlarmAction(int actionId) async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('alarm_actions')
+        .delete()
+        .eq('action_id', actionId);
+        return response;
+    } catch (e) {
+      print('Error deleting alarm action: $e');
+      throw e;
+    }
+  }
+
+  // Helper method to get current user ID
+  static int? getCurrentUserId() {
+    final user = getCurrentUser();
+    return user != null ? int.tryParse(user.id) : null;
+  }
+
+
+
+  // Get departments
+  static Future<List<Map<String, dynamic>>> getDepartments() async {
+    final client = await getClient();
+    try {
+      final response = await client
+        .from('departments')
+        .select('*')
+        .order('name');
+        
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error getting departments: $e');
+      throw e;
+    }
+  }
+
+  // Get classrooms
+  static Future<List<Map<String, dynamic>>> getClassrooms({int? departmentId}) async {
+    final client = await getClient();
+    try {
+      var query = client
+        .from('classrooms')
+        .select('*');
+        
+      if (departmentId != null) {
+        query = query.eq('department_id', departmentId);
+      }
+      
+      final response = await query.order('name');
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print('Error getting classrooms: $e');
+      throw e;
+    }
+  }
+
+  // Add this method to your SupabaseService class
+  static Future<bool> updateAlarmArmStatus(int alarmId, String status) async {
+    final client = await getClient();
+    try {
+      // Ensure status is a valid value according to your database constraints
+      if (!['disarmed', 'armed_stay', 'armed_away'].contains(status)) {
+        throw Exception('Invalid arm status value: $status');
+      }
+      
+      await client
+        .from('alarm_systems')
+        .update({
+          'arm_status': status,
+          'updated_at': DateTime.now().toIso8601String(),
+        })
+        .eq('alarm_id', alarmId);
+      
+      return true;
+    } catch (e) {
+      print('Error updating alarm arm status: $e');
+      throw e;
+    }
   }
 }
