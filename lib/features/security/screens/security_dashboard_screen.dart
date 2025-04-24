@@ -24,6 +24,8 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
       final provider = Provider.of<SecurityProvider>(context, listen: false);
       provider.loadSecurityDevices(alarmId: 0);
       provider.loadAlarmSystems();
+      // Add this line to load recent events immediately
+      provider.loadRecentSecurityEvents(limit: 5);
     });
   }
 
@@ -39,8 +41,11 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
           ),
           body: RefreshIndicator(
             onRefresh: () async {
-              provider.loadSecurityDevices(alarmId: 0);
-              provider.loadAlarmSystems();
+              await Future.wait([
+                provider.loadSecurityDevices(alarmId: 0),
+                provider.loadAlarmSystems(),
+                provider.loadRecentSecurityEvents(limit: 5), // Make sure this is called
+              ]);
             },
             child: Consumer<SecurityProvider>(
               builder: (context, provider, child) {
