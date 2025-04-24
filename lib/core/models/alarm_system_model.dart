@@ -42,8 +42,6 @@ class AlarmSystemModel {
       'department_id': departmentId,
       'classroom_id': classroomId,
       'is_active': isActive,
-      // Do not include created_at and updated_at for new records
-      // These will be set by the database
     };
   }
   

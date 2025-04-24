@@ -192,10 +192,6 @@ class _AlarmActionsScreenState extends State<AlarmActionsScreen> {
         return 'Send Notification';
       case 'actuate':
         return 'Trigger Actuator';
-      case 'record':
-        return 'Record Video';
-      case 'external':
-        return 'Call External Webhook';
       default:
         return 'Unknown Action';
     }
@@ -295,6 +291,7 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
   final _notificationMessageController = TextEditingController();
   final _webhookUrlController = TextEditingController();
   bool _isActive = true;
+  bool _isLoading = false;
   
   @override
   void initState() {
@@ -311,6 +308,24 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
       _webhookUrlController.text = widget.action!.externalWebhookUrl ?? '';
       _isActive = widget.action!.isActive;
     }
+    
+    // Load actuators
+    _loadActuators();
+  }
+  
+  Future<void> _loadActuators() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final provider = Provider.of<SecurityProvider>(context, listen: false);
+      if (provider.actuators.isEmpty) {
+        await provider.loadActuators();
+      }
+    } catch (e) {
+      print('Error loading actuators: $e');
+    }
+    
+    setState(() => _isLoading = false);
   }
   
   @override
@@ -324,31 +339,36 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       title: Text(widget.action != null ? 'Edit Action' : 'Add Action'),
-      content: SingleChildScrollView(
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildRuleDropdown(),
-              const SizedBox(height: 16),
-              _buildActionTypeSelector(),
-              const SizedBox(height: 16),
-              _buildActionFields(),
-              const SizedBox(height: 16),
-              SwitchListTile(
-                title: const Text('Active'),
-                value: _isActive,
-                onChanged: (value) {
-                  setState(() {
-                    _isActive = value;
-                  });
-                },
+      content: _isLoading 
+        ? const SizedBox(
+            height: 200,
+            child: Center(child: CircularProgressIndicator()),
+          )
+        : SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildRuleDropdown(),
+                  const SizedBox(height: 16),
+                  _buildActionTypeSelector(),
+                  const SizedBox(height: 16),
+                  _buildActionFields(),
+                  const SizedBox(height: 16),
+                  SwitchListTile(
+                    title: const Text('Active'),
+                    value: _isActive,
+                    onChanged: (value) {
+                      setState(() {
+                        _isActive = value;
+                      });
+                    },
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
       actions: [
         TextButton(
           child: const Text('Cancel'),
@@ -356,7 +376,7 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
         ),
         ElevatedButton(
           child: const Text('Save'),
-          onPressed: _saveAction,
+          onPressed: _isLoading ? null : _saveAction,
         ),
       ],
     );
@@ -424,28 +444,7 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
                 }
               },
             ),
-            ChoiceChip(
-              label: const Text('Record'),
-              selected: _actionType == 'record',
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() {
-                    _actionType = 'record';
-                  });
-                }
-              },
-            ),
-            ChoiceChip(
-              label: const Text('External'),
-              selected: _actionType == 'external',
-              onSelected: (selected) {
-                if (selected) {
-                  setState(() {
-                    _actionType = 'external';
-                  });
-                }
-              },
-            ),
+          
           ],
         ),
       ],
@@ -498,33 +497,7 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
       case 'actuate':
         return _buildActuatorFields();
         
-      case 'record':
-        return const Padding(
-          padding: EdgeInsets.all(8.0),
-          child: Text(
-            'This action will record video from cameras in the same area when triggered.',
-            style: TextStyle(fontStyle: FontStyle.italic),
-          ),
-        );
-        
-      case 'external':
-        return TextFormField(
-          controller: _webhookUrlController,
-          decoration: const InputDecoration(
-            labelText: 'Webhook URL',
-            hintText: 'Enter webhook URL',
-            border: OutlineInputBorder(),
-          ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter a URL';
-            }
-            if (!Uri.parse(value).isAbsolute) {
-              return 'Please enter a valid URL';
-            }
-            return null;
-          },
-        );
+      
         
       default:
         return Container();
@@ -532,55 +505,73 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
   }
   
   Widget _buildActuatorFields() {
-    // In a real app, you would have a list of actuators to select from
-    // For now, we'll just use a simple dropdown with mock values
+    final provider = Provider.of<SecurityProvider>(context, listen: false);
+    final actuators = provider.actuators;
+    
     return Column(
       children: [
-        DropdownButtonFormField<int>(
-          value: _actuatorId,
-          decoration: const InputDecoration(
-            labelText: 'Select Actuator',
-            border: OutlineInputBorder(),
+        if (actuators.isEmpty) ...[
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: Center(
+              child: Text(
+                'No actuators available. Please add actuators first.',
+                textAlign: TextAlign.center,
+              ),
+            ),
           ),
-          items: const [
-            DropdownMenuItem(value: 1, child: Text('Main Entrance Lock')),
-            DropdownMenuItem(value: 2, child: Text('Emergency Lights')),
-            DropdownMenuItem(value: 3, child: Text('PA System')),
-            DropdownMenuItem(value: 4, child: Text('Alarm Siren')),
-          ],
-          onChanged: (value) {
-            setState(() {
-              _actuatorId = value;
-            });
-          },
-          validator: (value) {
-            if (value == null) {
-              return 'Please select an actuator';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 16),
-        DropdownButtonFormField<String>(
-          value: _targetState,
-          decoration: const InputDecoration(
-            labelText: 'Target State',
-            border: OutlineInputBorder(),
-          ),
-          items: const [
-            DropdownMenuItem(value: 'on', child: Text('On')),
-            DropdownMenuItem(value: 'off', child: Text('Off')),
-            DropdownMenuItem(value: 'lock', child: Text('Lock')),
-            DropdownMenuItem(value: 'unlock', child: Text('Unlock')),
-          ],
-          onChanged: (value) {
-            if (value != null) {
+        ] else ...[
+          DropdownButtonFormField<int>(
+            value: _actuatorId,
+            decoration: const InputDecoration(
+              labelText: 'Select Actuator',
+              border: OutlineInputBorder(),
+            ),
+            items: actuators.map((actuator) {
+              final actuatorId = actuator.actuatorId;
+              final deviceName = actuator.name ?? 'Actuator $actuatorId';
+    
+              
+              // Format the display name with location if available
+              final displayText =deviceName;
+              
+              return DropdownMenuItem<int>(
+                value: actuatorId,
+                child: Text(displayText),
+              );
+            }).toList(),
+            onChanged: (value) {
               setState(() {
-                _targetState = value;
+                _actuatorId = value;
               });
-            }
-          },
-        ),
+            },
+            validator: (value) {
+              if (_actionType == 'actuate' && value == null) {
+                return 'Please select an actuator';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            value: _targetState,
+            decoration: const InputDecoration(
+              labelText: 'Target State',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(value: 'on', child: Text('On')),
+              DropdownMenuItem(value: 'off', child: Text('Off')),
+            ],
+            onChanged: (value) {
+              if (value != null) {
+                setState(() {
+                  _targetState = value;
+                });
+              }
+            },
+          ),
+        ],
       ],
     );
   }

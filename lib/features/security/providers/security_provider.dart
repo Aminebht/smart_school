@@ -104,6 +104,22 @@ class SecurityProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadActuators() async {
+  try {
+    _isLoading = true;
+    notifyListeners();
+    
+    _actuators = (await SupabaseService.getActuators()).cast<ActuatorModel>();
+    
+    _isLoading = false;
+    notifyListeners();
+  } catch (e) {
+    _errorMessage = 'Failed to load actuators: ${e.toString()}';
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
   Future<bool> saveAlarmSystem(AlarmSystemModel alarm) async {
     try {
       Map<String, dynamic> data = alarm.toJson();
@@ -527,37 +543,89 @@ class SecurityProvider extends ChangeNotifier {
   }
 
   // Load alarm events for a specific alarm
-  Future<void> loadAlarmEvents(int alarmId, {int limit = 20}) async {
+  Future<void> loadAlarmEvents(int alarmId, {int limit = 20, bool showLoading = true}) async {
+    if (showLoading) {
+      _isLoading = true;
+      // Don't notify here
+    }
+    
     try {
       final eventsJson = await SupabaseService.getAlarmEvents(alarmId, limit: limit);
       _alarmEvents = eventsJson.map((json) => AlarmEventModel.fromJson(json)).toList();
+      
+      if (showLoading) {
+        _isLoading = false;
+      }
+      
+      // Only notify if loading was shown, otherwise don't update UI
+      if (showLoading) {
+        notifyListeners();
+      }
     } catch (e) {
       print('Error loading alarm events: ${e.toString()}');
+      _errorMessage = 'Failed to load alarm events: ${e.toString()}';
+
+      if (showLoading) {
+        _isLoading = false;
+      }
+
+      // Only notify if loading was shown
+      if (showLoading) {
+        notifyListeners();
+      }
     }
   }
 
   // Load alarm actions for a specific alarm
-  Future<void> loadAlarmActions(int alarmId) async {
-    _isLoading = true;
-    notifyListeners();
+  Future<void> loadAlarmActions(int alarmId, {bool showLoading = true}) async {
+    if (showLoading) {
+      _isLoading = true;
+      // Don't notify listeners here - just set loading state
+    }
     
     try {
       final actionsJson = await SupabaseService.getAlarmActions(alarmId);
       _alarmActions = actionsJson.map((json) => AlarmActionModel.fromJson(json)).toList();
-      _isLoading = false;
-      notifyListeners();
+      
+      if (showLoading) {
+        _isLoading = false;
+      }
+      
+      // Only notify listeners if showLoading is true
+      if (showLoading) {
+        notifyListeners();
+      }
     } catch (e) {
       _errorMessage = 'Failed to load alarm actions: ${e.toString()}';
-      _isLoading = false;
-      notifyListeners();
-      rethrow;
+
+      if (showLoading) {
+        _isLoading = false;
+      }
+
+      // Only notify listeners if showLoading is true
+      if (showLoading) {
+        notifyListeners();
+      }
+
+      // Don't rethrow the error, handle it gracefully
+      print('Error loading alarm actions: $e');
     }
   }
 
   // Save a new alarm action
   Future<bool> saveAlarmAction(AlarmActionModel action) async {
     try {
-      final actionId = await SupabaseService.createAlarmAction(action.toJson());
+      // Create a copy of the action data for the API
+      final actionData = action.toJson();
+      
+      // Remove the action_id field for new records to let the database generate it
+      if (action.actionId == 0) {
+        actionData.remove('action_id');
+      }
+      
+      // Call the API with the modified data
+      final actionId = await SupabaseService.createAlarmAction(actionData);
+      
       if (actionId != null) {
         // Create a new action with the assigned ID
         final newAction = AlarmActionModel(
@@ -644,15 +712,22 @@ class SecurityProvider extends ChangeNotifier {
   // Delete an alarm action
   Future<bool> deleteAlarmAction(int actionId) async {
     try {
+      _isLoading = true;
+      notifyListeners();
+      
       final success = await SupabaseService.deleteAlarmAction(actionId);
+      
       if (success) {
+        // Only remove from local list if API call succeeded
         _alarmActions.removeWhere((action) => action.actionId == actionId);
-        notifyListeners();
-        return true;
       }
-      return false;
+      
+      _isLoading = false;
+      notifyListeners();
+      return success;
     } catch (e) {
-      _errorMessage = 'Failed to delete action: ${e.toString()}';
+      _errorMessage = 'Failed to delete alarm action: ${e.toString()}';
+      _isLoading = false;
       notifyListeners();
       return false;
     }

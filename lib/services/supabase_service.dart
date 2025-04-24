@@ -864,18 +864,21 @@ class SupabaseService {
   }
 
   static Future<bool> updateAlarmRule(int ruleId, Map<String, dynamic> data) async {
-    final client = await getClient();
-    try {
-      final response =await client
-        .from('alarm_rules')
-        .update(data)
-        .eq('rule_id', ruleId);
-        return response;
-    } catch (e) {
-      print('Error updating alarm rule: $e');
-      throw e;
-    }
+  final client = await getClient();
+  try {
+    await client
+      .from('alarm_rules')
+      .update(data)
+      .eq('rule_id', ruleId);
+    
+    // If we made it here without an exception, the update was successful
+    return true;
+  } catch (e) {
+    print('Error updating alarm rule: $e');
+    // Return false instead of throwing, so we have a consistent return type
+    return false;
   }
+}
 
   static Future<void> deleteAlarmRule(int ruleId) async {
     final client = await getClient();
@@ -976,47 +979,55 @@ class SupabaseService {
     }
   }
 
-  static Future<int> createAlarmAction(Map<String, dynamic> data) async {
-    final client = await getClient();
+  static Future<int?> createAlarmAction(Map<String, dynamic> data) async {
     try {
+      // Ensure action_id is not included for new records
+      data.remove('action_id');
+      
       final response = await client
         .from('alarm_actions')
         .insert(data)
-        .select('action_id')
+        .select()
         .single();
       
       return response['action_id'];
     } catch (e) {
       print('Error creating alarm action: $e');
-      throw e;
+      return null;
     }
   }
 
   static Future<bool> updateAlarmAction(int actionId, Map<String, dynamic> data) async {
-    final client = await getClient();
-    try {
-      final response = await client
-        .from('alarm_actions')
-        .update(data)
-        .eq('action_id', actionId);
-        return response;
-    } catch (e) {
-      print('Error updating alarm action: $e');
-      throw e;
-    }
+  final client = await getClient();
+  try {
+    await client
+      .from('alarm_actions')
+      .update(data)
+      .eq('action_id', actionId);
+    
+    // If we got here without exceptions, the update was successful
+    return true;
+  } catch (e) {
+    print('Error updating alarm action: $e');
+    // Return false instead of null when there's an error
+    return false;
   }
+}
 
   static Future<bool> deleteAlarmAction(int actionId) async {
     final client = await getClient();
     try {
-      final response = await client
+      await client
         .from('alarm_actions')
         .delete()
         .eq('action_id', actionId);
-        return response;
+        
+      // Return true if we got here without any exceptions
+      return true;
     } catch (e) {
       print('Error deleting alarm action: $e');
-      throw e;
+      // Return false instead of null when there's an error
+      return false;
     }
   }
 

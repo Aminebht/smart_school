@@ -17,11 +17,11 @@ class AlarmEventsScreen extends StatefulWidget {
 
 class _AlarmEventsScreenState extends State<AlarmEventsScreen> {
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(() => 
-      Provider.of<SecurityProvider>(context, listen: false).loadAlarmEvents(widget.alarmId)
-    );
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // This runs after the first build but before user sees the screen
+    Provider.of<SecurityProvider>(context, listen: false)
+      .loadAlarmEvents(widget.alarmId);
   }
 
   @override

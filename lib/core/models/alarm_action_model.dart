@@ -4,7 +4,7 @@ class AlarmActionModel {
   final int actionId;
   final int alarmId;
   final int ruleId;
-  final String actionType; // 'notify', 'actuate', 'record', 'external'
+  final String actionType; // 'notify', 'actuate',
   final int? actuatorId;
   final String? targetState;
   final String? notificationSeverity; // 'info', 'warning', 'critical'
@@ -52,22 +52,25 @@ class AlarmActionModel {
   }
   
   Map<String, dynamic> toJson() {
-    return {
-      'action_id': actionId,
-      'alarm_id': alarmId,
-      'rule_id': ruleId,
-      'action_type': actionType,
-      'actuator_id': actuatorId,
-      'target_state': targetState,
-      'notification_severity': notificationSeverity,
-      'notification_message': notificationMessage,
-      'notify_user_ids': notifyUserIds,
-      'external_webhook_url': externalWebhookUrl,
-      'is_active': isActive,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-    };
-  }
+  final map = {
+    'action_id': actionId != 0 ? actionId : null, // Use null for new records
+    'alarm_id': alarmId,
+    'rule_id': ruleId,
+    'action_type': actionType,
+    'actuator_id': actuatorId,
+    'target_state': targetState,
+    'notification_severity': notificationSeverity,
+    'notification_message': notificationMessage,
+    'notify_user_ids': notifyUserIds,
+    'external_webhook_url': externalWebhookUrl,
+    'is_active': isActive,
+    // Don't include created_at and updated_at for new records
+  };
+  
+  // Remove null values
+  map.removeWhere((key, value) => value == null);
+  return map;
+}
   
   IconData get actionIcon {
     switch (actionType) {
@@ -75,10 +78,6 @@ class AlarmActionModel {
         return Icons.notifications;
       case 'actuate':
         return Icons.touch_app;
-      case 'record':
-        return Icons.videocam;
-      case 'external':
-        return Icons.cloud_upload;
       default:
         return Icons.settings;
     }
@@ -103,10 +102,6 @@ class AlarmActionModel {
         return 'Send ${notificationSeverity ?? ''} notification';
       case 'actuate':
         return 'Set actuator to ${targetState ?? 'on'}';
-      case 'record':
-        return 'Start recording';
-      case 'external':
-        return 'Call external service';
       default:
         return actionType;
     }
@@ -118,10 +113,6 @@ class AlarmActionModel {
         return Icons.notifications;
       case 'actuate':
         return Icons.touch_app;
-      case 'record':
-        return Icons.videocam;
-      case 'external':
-        return Icons.link;
       default:
         return Icons.flash_on;
     }
@@ -140,11 +131,8 @@ class AlarmActionModel {
       }
     } else if (actionType == 'actuate') {
       return Colors.green;
-    } else if (actionType == 'record') {
-      return Colors.purple;
-    } else if (actionType == 'external') {
-      return Colors.teal;
-    } else {
+    }
+     else {
       return Colors.grey;
     }
   }
