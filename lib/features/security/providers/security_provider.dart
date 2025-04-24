@@ -94,13 +94,14 @@ class SecurityProvider extends ChangeNotifier {
       await Future.wait([
         loadSecurityDevices(showLoading: false),
         loadSecurityEvents(limit: 20, showLoading: false),
-        loadRecentSecurityEvents(limit: 5),
+        loadRecentSecurityEvents(limit: 5, showLoading: false),
         loadAlarmSystems(showLoading: false),
-        checkAlarmSystemStatus(),
+        checkAlarmSystemStatus(showLoading: false),
       ]);
     } catch (e) {
       print('Error refreshing data: ${e.toString()}');
       _errorMessage = 'Error refreshing data: ${e.toString()}';
+      // Don't notifyListeners here either
     }
   }
 
@@ -228,49 +229,59 @@ Future<bool> saveAlarmSystem(AlarmSystemModel alarm) async {
 
   // Load security events
   Future<void> loadSecurityEvents({int limit = 20, bool showLoading = true}) async {
+  if (showLoading) {
+    _isLoading = true;
+    notifyListeners();
+  }
+
+  try {
+    final eventsJson = await SupabaseService.getSecurityEvents(limit: limit);
+    _events = eventsJson.map((json) => SecurityEventModel.fromJson(json)).toList();
+
     if (showLoading) {
-      _isLoading = true;
+      _isLoading = false;
       notifyListeners();
     }
-
-    try {
-      final eventsJson = await SupabaseService.getSecurityEvents(limit: limit);
-      _events = eventsJson.map((json) => SecurityEventModel.fromJson(json)).toList();
-
-      if (showLoading) {
-        _isLoading = false;
-      }
-      if (!showLoading) return;
-      notifyListeners();
-    } catch (e) {
-      _errorMessage = 'Failed to load security events: ${e.toString()}';
-      if (showLoading) {
-        _isLoading = false;
-      }
-      if (!showLoading) return;
+  } catch (e) {
+    _errorMessage = 'Failed to load security events: ${e.toString()}';
+    if (showLoading) {
+      _isLoading = false;
       notifyListeners();
     }
   }
+}
 
-  // Load only recent security events
-  Future<void> loadRecentSecurityEvents({int limit = 5}) async {
-    try {
-      final eventsJson = await SupabaseService.getSecurityEvents(limit: limit);
-      _recentEvents = eventsJson.map((json) => SecurityEventModel.fromJson(json)).toList();
+  // Fix for loadRecentSecurityEvents
+Future<void> loadRecentSecurityEvents({int limit = 5, bool showLoading = true}) async {
+  try {
+    final eventsJson = await SupabaseService.getSecurityEvents(limit: limit);
+    _recentEvents = eventsJson.map((json) => SecurityEventModel.fromJson(json)).toList();
+    
+    // Only notify if showLoading is true
+    if (showLoading) {
       notifyListeners();
-    } catch (e) {
-      _errorMessage = 'Failed to load recent events: ${e.toString()}';
+    }
+  } catch (e) {
+    _errorMessage = 'Failed to load recent events: ${e.toString()}';
+    
+    // Only notify if showLoading is true
+    if (showLoading) {
       notifyListeners();
     }
   }
+}
 
   // Check alarm system status
-  Future<void> checkAlarmSystemStatus() async {
+  Future<void> checkAlarmSystemStatus({bool showLoading = true}) async {
     try {
       final status = await SupabaseService.getAlarmSystemStatus();
       _alarmSystemActive = status == 'active';
       _securityStats['alarm_status'] = status;
-      notifyListeners();
+      
+      // Only notify if showLoading is true
+      if (showLoading) {
+        notifyListeners();
+      }
     } catch (e) {
       print('Error checking alarm status: ${e.toString()}');
     }

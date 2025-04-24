@@ -19,7 +19,10 @@ class _SecurityEventsScreenState extends State<SecurityEventsScreen> {
   @override
   void initState() {
     super.initState();
-    _loadEvents();
+    // Use addPostFrameCallback to ensure we're not in a build phase
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadEvents();
+    });
   }
 
   Future<void> _loadEvents() async {
@@ -36,7 +39,12 @@ class _SecurityEventsScreenState extends State<SecurityEventsScreen> {
           IconButton(
             icon: const Icon(Icons.refresh),
             tooltip: 'Refresh',
-            onPressed: _loadEvents,
+            onPressed: () {
+              // Use Future.microtask to ensure we're not in a build phase
+              Future.microtask(() {
+                _loadEvents();
+              });
+            },
           ),
         ],
       ),
@@ -147,7 +155,11 @@ class _SecurityEventsScreenState extends State<SecurityEventsScreen> {
           ),
           const SizedBox(height: 16),
           ElevatedButton.icon(
-            onPressed: _loadEvents,
+            onPressed: () {
+              Future.microtask(() {
+                _loadEvents();
+              });
+            },
             icon: const Icon(Icons.refresh),
             label: const Text('Retry'),
           ),
