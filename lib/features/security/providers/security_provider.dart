@@ -659,100 +659,35 @@ class SecurityProvider extends ChangeNotifier {
   }
 
   // Toggle alarm system active state
-  Future<void> toggleAlarmActive(int alarmId, bool isActive) async {
+  Future<bool> toggleAlarmActive(int alarmId, bool isActive) async {
     try {
-      await SupabaseService.updateAlarmSystem(alarmId, {'is_active': isActive});
-
-      // Update local state
-      final index = _alarmSystems.indexWhere((a) => a.alarmId == alarmId);
-      if (index >= 0) {
-        final updatedAlarm = _alarmSystems[index].copyWith(isActive: isActive);
-        _alarmSystems[index] = updatedAlarm;
-
-        if (_currentAlarmSystem?.alarmId == alarmId) {
-          _currentAlarmSystem = updatedAlarm;
-        }
-
-        // Update security stats
-        _securityStats['active_alarms'] = activeAlarms;
-
-        notifyListeners();
+      // Find the alarm in the list
+      final index = _alarmSystems.indexWhere((alarm) => alarm.alarmId == alarmId);
+      if (index == -1) return false;
+      
+      // Update the alarm locally first for immediate UI response
+      _alarmSystems[index] = _alarmSystems[index].copyWith(isActive: isActive);
+      
+      // If this is the current alarm being viewed, update it too
+      if (_currentAlarmSystem?.alarmId == alarmId) {
+        _currentAlarmSystem = _currentAlarmSystem!.copyWith(isActive: isActive);
       }
+      
+      notifyListeners();
+      
+      // Make the API call to update on the server
+      final response = await SupabaseService.updateAlarmSystem(alarmId, {
+        'is_active': isActive
+      });
+      
+      return response != null;
     } catch (e) {
-      _errorMessage = 'Failed to toggle alarm state: ${e.toString()}';
-      notifyListeners();
-    }
-  }
-
-  // Set alarm arm status (disarmed, armed_stay, armed_away)
-  Future<void> setAlarmArmStatus(int alarmId, String armStatus) async {
-    try {
-      await SupabaseService.updateAlarmSystem(alarmId, {'arm_status': armStatus});
-
-      // Update local state
-      final index = _alarmSystems.indexWhere((a) => a.alarmId == alarmId);
-      if (index >= 0) {
-        final updatedAlarm = _alarmSystems[index].copyWith(armStatus: armStatus);
-        _alarmSystems[index] = updatedAlarm;
-
-        if (_currentAlarmSystem?.alarmId == alarmId) {
-          _currentAlarmSystem = updatedAlarm;
-        }
-
-        notifyListeners();
-      }
-    } catch (e) {
-      _errorMessage = 'Failed to set alarm status: ${e.toString()}';
-      notifyListeners();
-    }
-  }
-
-  // Add this method to your SecurityProvider class
-  Future<bool> changeAlarmArmStatus(int alarmId, String status) async {
-    try {
-      _isLoading = true;
-      notifyListeners();
-      
-      // Validate the status value
-      if (!['armed_stay', 'armed_away', 'disarmed'].contains(status)) {
-        _errorMessage = 'Invalid alarm status value';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-      
-      // Update on the server
-      final success = await SupabaseService.updateAlarmArmStatus(alarmId, status);
-      
-      if (success) {
-        // Update local data
-        if (_currentAlarmSystem != null && _currentAlarmSystem!.alarmId == alarmId) {
-          _currentAlarmSystem = _currentAlarmSystem!.copyWith(armStatus: status);
-        }
-        
-        // Update in the alarms list too
-        final index = _alarmSystems.indexWhere((a) => a.alarmId == alarmId);
-        if (index >= 0) {
-          _alarmSystems[index] = _alarmSystems[index].copyWith(armStatus: status);
-        }
-        
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
-      
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    } catch (e) {
-      _errorMessage = 'Failed to change alarm status: ${e.toString()}';
-      _isLoading = false;
+      _errorMessage = 'Failed to toggle alarm: ${e.toString()}';
       notifyListeners();
       return false;
     }
   }
-
-  // Delete alarm system
+    // Delete alarm system
   Future<bool> deleteAlarmSystem(int alarmId) async {
     try {
       await SupabaseService.deleteAlarmSystem(alarmId);

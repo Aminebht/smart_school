@@ -116,78 +116,7 @@ class _AlarmSystemsScreenState extends State<AlarmSystemsScreen> {
               ],
             ),
           ),
-          const Divider(),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildArmButton(
-                  context,
-                  'Disarm',
-                  Icons.shield_outlined,
-                  Colors.red,
-                  alarm.armStatus == 'disarmed',
-                  () => provider.setAlarmArmStatus(alarm.alarmId, 'disarmed'),
-                ),
-                _buildArmButton(
-                  context,
-                  'Arm (Stay)',
-                  Icons.home,
-                  Colors.green,
-                  alarm.armStatus == 'armed_stay',
-                  () => provider.setAlarmArmStatus(alarm.alarmId, 'armed_stay'),
-                ),
-                _buildArmButton(
-                  context,
-                  'Arm (Away)',
-                  Icons.exit_to_app,
-                  Colors.blue,
-                  alarm.armStatus == 'armed_away',
-                  () => provider.setAlarmArmStatus(alarm.alarmId, 'armed_away'),
-                ),
-              ],
-            ),
-          ),
         ],
-      ),
-    );
-  }
-  
-  Widget _buildArmButton(
-    BuildContext context, 
-    String label, 
-    IconData icon, 
-    Color color, 
-    bool isSelected, 
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.1) : Colors.transparent,
-          border: Border.all(
-            color: isSelected ? color : Colors.grey.withOpacity(0.5),
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: isSelected ? color : Colors.grey),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? color : Colors.grey,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

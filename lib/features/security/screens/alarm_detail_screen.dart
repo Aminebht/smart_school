@@ -23,7 +23,6 @@ class AlarmDetailScreen extends StatefulWidget {
 
 class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
   bool _isLoading = true;
-  bool _isArming = false;
   
   @override
   void initState() {
@@ -56,18 +55,17 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
     }
   }
 
-  Future<void> _changeArmStatus(String newStatus) async {
-    setState(() => _isArming = true);
-    
+  // Toggle alarm active status
+  Future<void> _toggleAlarmActive(bool newValue) async {
     try {
       final provider = Provider.of<SecurityProvider>(context, listen: false);
-      final success = await provider.changeAlarmArmStatus(widget.alarmId, newStatus);
+      final success = await provider.toggleAlarmActive(widget.alarmId, newValue);
       
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(_getArmStatusMessage(newStatus)),
-            backgroundColor: _getArmStatusColor(newStatus),
+            content: Text(newValue ? 'Alarm system activated' : 'Alarm system deactivated'),
+            backgroundColor: newValue ? AppColors.success : AppColors.warning,
           ),
         );
       }
@@ -78,37 +76,8 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
         );
       }
     }
-    
-    if (mounted) {
-      setState(() => _isArming = false);
-    }
   }
   
-  String _getArmStatusMessage(String status) {
-    switch (status) {
-      case 'armed_stay':
-        return 'Alarm system is now armed in stay mode';
-      case 'armed_away':
-        return 'Alarm system is now armed in away mode';
-      case 'disarmed':
-        return 'Alarm system is now disarmed';
-      default:
-        return 'Alarm status changed to $status';
-    }
-  }
-  
-  Color _getArmStatusColor(String status) {
-    switch (status) {
-      case 'armed_stay':
-      case 'armed_away':
-        return AppColors.success;
-      case 'disarmed':
-        return AppColors.warning;
-      default:
-        return AppColors.primary;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<SecurityProvider>(
@@ -131,6 +100,13 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
         return Scaffold(
           appBar: AppBar(
             title: Text(alarm.name),
+            actions: [
+              Switch(
+                value: alarm.isActive,
+                activeColor: AppColors.success,
+                onChanged: _toggleAlarmActive,
+              ),
+            ],
           ),
           body: RefreshIndicator(
             onRefresh: _loadData,
@@ -139,19 +115,57 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-              
+                  // Status indicator at the top
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: alarm.isActive ? AppColors.success.withOpacity(0.1) : AppColors.textSecondary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: alarm.isActive ? AppColors.success : AppColors.textSecondary),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          alarm.isActive ? Icons.security : Icons.security_outlined,
+                          color: alarm.isActive ? AppColors.success : AppColors.textSecondary,
+                          size: 36,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                alarm.isActive ? 'Alarm System Active' : 'Alarm System Inactive',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: alarm.isActive ? AppColors.success : AppColors.textSecondary,
+                                ),
+                              ),
+                              Text(
+                                _getStatusDescription(alarm.isActive),
+                                style: TextStyle(
+                                  color: alarm.isActive ? AppColors.success : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   
-                  // Alarm information card
+                  const SizedBox(height: 16),
+                  
                   _buildAlarmInfoCard(context, alarm),
                   
                   const SizedBox(height: 16),
                   
-                  // Recent events card
                   _buildRecentEventsCard(context, events),
                   
                   const SizedBox(height: 16),
                   
-                  // Rules and actions section
                   _buildRulesCard(context, rules),
                   
                   const SizedBox(height: 16),
@@ -160,7 +174,6 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
                   
                   const SizedBox(height: 16),
                   
-                  // Connected devices section
                   if (devices.isNotEmpty)
                     _buildDevicesCard(context, devices)
                   else
@@ -174,24 +187,26 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
               ),
             ),
           ),
-       
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              Navigator.pushNamed(
+                context,
+                AppRoutes.alarmEdit,
+                arguments: alarm.alarmId,
+              ).then((_) => _loadData());
+            },
+            tooltip: 'Edit Alarm',
+            child: const Icon(Icons.edit),
+          ),
         );
       },
     );
   }
   
-  
-  String _getStatusDescription(String status) {
-    switch (status) {
-      case 'armed_stay':
-        return 'Perimeter sensors are active. Motion sensors inside are ignored.';
-      case 'armed_away':
-        return 'All sensors are active. The system will trigger alarms for any detected breaches.';
-      case 'disarmed':
-        return 'The alarm system is not monitoring for breaches. Sensors are still active for status monitoring.';
-      default:
-        return 'The alarm system is in an unknown state.';
-    }
+  String _getStatusDescription(bool isActive) {
+    return isActive
+        ? 'The alarm system is actively monitoring for breaches and will trigger configured actions.'
+        : 'The alarm system is not monitoring for breaches. Sensors are still active for status monitoring.';
   }
   
   Widget _buildAlarmInfoCard(BuildContext context, AlarmSystemModel alarm) {

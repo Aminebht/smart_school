@@ -21,7 +21,6 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   
   bool _isLoading = false;
   bool _isActive = true;
-  String _armStatus = 'disarmed';
   int? _departmentId;
   int? _classroomId;
   
@@ -56,7 +55,6 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
             _nameController.text = alarm.name;
             _descriptionController.text = alarm.description ?? '';
             _isActive = alarm.isActive;
-            _armStatus = alarm.armStatus;
             _departmentId = alarm.departmentId;
             _classroomId = alarm.classroomId;
           });
@@ -193,19 +191,17 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     SwitchListTile(
-                      title: const Text('Active'),
+                      title: Text(_isActive ? 'Active (Alarm is currently enabled)' : 'Inactive (Alarm is disabled)'),
                       value: _isActive,
                       onChanged: (value) {
                         setState(() => _isActive = value);
                       },
+                      subtitle: Text(
+                        _isActive 
+                            ? 'The alarm system will detect and report security breaches' 
+                            : 'Enable the alarm system to monitor security',
+                      ),
                     ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Arm Status',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    _buildArmStatusSelector(),
                     const SizedBox(height: 32),
                     SizedBox(
                       width: double.infinity,
@@ -222,43 +218,6 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     );
   }
   
-  Widget _buildArmStatusSelector() {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          _buildArmStatusTile('disarmed', 'Disarmed', Icons.shield_outlined),
-          const Divider(height: 1),
-          _buildArmStatusTile('armed_stay', 'Armed (Stay)', Icons.home),
-          const Divider(height: 1),
-          _buildArmStatusTile('armed_away', 'Armed (Away)', Icons.exit_to_app),
-        ],
-      ),
-    );
-  }
-  
-  Widget _buildArmStatusTile(String value, String title, IconData icon) {
-    return RadioListTile<String>(
-      title: Row(
-        children: [
-          Icon(icon),
-          const SizedBox(width: 8),
-          Text(title),
-        ],
-      ),
-      value: value,
-      groupValue: _armStatus,
-      onChanged: (newValue) {
-        if (newValue != null) {
-          setState(() => _armStatus = newValue);
-        }
-      },
-    );
-  }
-  
   Future<void> _saveAlarmSystem() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -272,7 +231,6 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
       departmentId: _departmentId,
       classroomId: _classroomId,
       isActive: _isActive,
-      armStatus: _armStatus,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
