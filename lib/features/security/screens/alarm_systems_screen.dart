@@ -113,6 +113,12 @@ class _AlarmSystemsScreenState extends State<AlarmSystemsScreen> {
                   label: const Text('Edit'),
                   onPressed: () => _navigateToAlarmEdit(context, alarm),
                 ),
+                // Add a delete button
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                  onPressed: () => _showDeleteConfirmation(context, alarm),
+                  tooltip: 'Delete',
+                ),
               ],
             ),
           ),
@@ -189,5 +195,30 @@ class _AlarmSystemsScreenState extends State<AlarmSystemsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showDeleteConfirmation(BuildContext context, AlarmSystemModel alarm) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Alarm System'),
+        content: const Text('Are you sure you want to delete this alarm system?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: AppColors.error)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      // Call the delete method from the provider
+      Provider.of<SecurityProvider>(context, listen: false).deleteAlarmSystem(alarm.alarmId);
+    }
   }
 }

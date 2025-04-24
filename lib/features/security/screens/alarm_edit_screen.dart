@@ -6,10 +6,13 @@ import '../../../core/widgets/custom_button.dart';
 import '../providers/security_provider.dart';
 
 class AlarmEditScreen extends StatefulWidget {
-  final int? alarmId; // This should be the alarmId, not the model
-
-  const AlarmEditScreen({super.key, this.alarmId});
-
+  final int? alarmId;
+  
+  const AlarmEditScreen({
+    Key? key,
+    this.alarmId,
+  }) : super(key: key);
+  
   @override
   State<AlarmEditScreen> createState() => _AlarmEditScreenState();
 }
@@ -30,8 +33,19 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
   @override
   void initState() {
     super.initState();
+    
+    // Always load departments for both new and existing alarms
     _loadDepartments();
-    _loadFormData();
+    
+    // If alarmId is provided, load the alarm system data
+    if (widget.alarmId != null) {
+      _loadAlarmSystem(widget.alarmId!);
+    } else {
+      // Initialize with default values for a new system
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
   
   @override
@@ -242,10 +256,21 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     setState(() => _isLoading = false);
     
     if (success && mounted) {
+      // Display success message
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Alarm system saved successfully')),
       );
-      Navigator.pop(context);
+      
+      // Automatically navigate back to the previous screen
+      Navigator.of(context).pop();
+    } else if (mounted) {
+      // Show error message if the save operation failed
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to save alarm system'),
+          backgroundColor: AppColors.error,
+        ),
+      );
     }
   }
   
@@ -283,5 +308,54 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
         ],
       ),
     );
+  }
+  
+  Future<void> _loadAlarmSystem(int alarmId) async {
+    setState(() => _isLoading = true);
+    
+    try {
+      // Load the security provider 
+      final provider = Provider.of<SecurityProvider>(context, listen: false);
+      
+      // Load departments first (needed for dropdown)
+      await _loadDepartments();
+      
+      // Load alarm details
+      final alarm = await provider.getAlarmById(alarmId);
+          
+      if (alarm != null) {
+        setState(() {
+          _nameController.text = alarm.name;
+          _descriptionController.text = alarm.description ?? '';
+          _isActive = alarm.isActive;
+          _departmentId = alarm.departmentId;
+          _classroomId = alarm.classroomId;
+        });
+        
+        // Load classrooms for the selected department
+        if (alarm.departmentId != null) {
+          await _loadClassrooms(alarm.departmentId);
+        }
+      } else {
+        // Handle the case where the alarm isn't found
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Alarm system not found')),
+          );
+          // Navigate back since we can't edit a non-existent alarm
+          Navigator.pop(context);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load alarm details: ${e.toString()}')),
+        );
+      }
+    }
+    
+    if (mounted) {
+      setState(() => _isLoading = false);
+    }
   }
 }

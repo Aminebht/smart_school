@@ -817,18 +817,22 @@ class SupabaseService {
     }
   }
 
-  static Future<void> deleteAlarmSystem(int alarmId) async {
-    final client = await getClient();
-    try {
-      await client
-        .from('alarm_systems')
-        .delete()
-        .eq('alarm_id', alarmId);
-    } catch (e) {
-      print('Error deleting alarm system: $e');
-      throw e;
-    }
+  static Future<bool> deleteAlarmSystem(int alarmId) async {
+  final client = await getClient();
+  try {
+    // First, delete all related records (alarm actions, rules, and events)
+
+    // Finally, delete the alarm system itself
+    await client.from('alarm_systems')
+      .delete()
+      .eq('alarm_id', alarmId);
+    
+    return true;
+  } catch (e) {
+    print('Error deleting alarm system: $e');
+    return false;
   }
+}
 
   // Alarm Rules
   static Future<List<Map<String, dynamic>>> getAlarmRules(int alarmId) async {
@@ -1220,4 +1224,36 @@ class SupabaseService {
       return [];
     }
   }
+
+  // Update/create this method in the SupabaseService class
+static Future<bool> saveAlarmSystem(Map<String, dynamic> alarmData) async {
+  final client = await getClient();
+  try {
+    final alarmId = alarmData['alarm_id'];
+    
+    // If alarmId is 0 or null, this is a new record - INSERT
+    if (alarmId == null || alarmId == 0) {
+      // Remove alarm_id field for new records
+      alarmData.remove('alarm_id');
+      
+      await client
+        .from('alarm_systems')
+        .insert(alarmData);
+    } 
+    // Otherwise, this is an existing record - UPDATE
+    else {
+      await client
+        .from('alarm_systems')
+        .update(alarmData)
+        .eq('alarm_id', alarmId);
+    }
+    
+    // If we made it here without exceptions, the operation was successful
+    return true;
+  } catch (e) {
+    print('Error saving alarm system: $e');
+    // Return false instead of null for error cases
+    return false;
+  }
+}
 }

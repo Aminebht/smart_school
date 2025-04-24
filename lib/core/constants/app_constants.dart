@@ -49,7 +49,7 @@ class AppRoutes {
   // Alarm routes
   static const alarmSystems = '/alarm_systems';
   static const alarmDetail = '/alarm_detail';
-  static const alarmEdit = '/alarm_edit';
+  static const String alarmEdit = '/alarm_edit';
   static const alarmRules = '/alarm_rules';
   static const alarmActions = '/alarm_actions';
   static const alarmEvents = '/alarm_events';

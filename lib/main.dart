@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_school/core/models/alarm_system_model.dart';
 import 'package:smart_school/core/models/camera_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/app_constants.dart';
@@ -51,8 +52,7 @@ class SmartSchoolApp extends StatelessWidget {
         // Add other providers here
       ],
       child: MaterialApp(
-        title: appName,
-        debugShowCheckedModeBanner: false,
+        title: 'Smart School',
         theme: ThemeData(
           primaryColor: AppColors.primary,
           scaffoldBackgroundColor: AppColors.background,
@@ -126,40 +126,75 @@ class SmartSchoolApp extends StatelessWidget {
               ),
             );
           }
+          if (settings.name == AppRoutes.alarmDetail && settings.arguments != null) {
+            // Handle both int and AlarmSystemModel arguments
+            final alarmId = settings.arguments is AlarmSystemModel 
+              ? (settings.arguments as AlarmSystemModel).alarmId 
+              : settings.arguments as int;
+            
+            return MaterialPageRoute(
+              builder: (context) => AlarmDetailScreen(
+                alarmId: alarmId,
+              ),
+            );
+          }
           if (settings.name == AppRoutes.alarmEdit) {
-            if (settings.arguments != null) {
-              return MaterialPageRoute(
-                builder: (context) => AlarmEditScreen(
-                  alarmId: settings.arguments as int,
-                ),
-              );
-            } else {
-              return MaterialPageRoute(
-                builder: (context) => const AlarmEditScreen(),
-              );
-            }
+            // Handle both cases: with and without arguments
+            final alarmId = settings.arguments == null
+                ? null  // Creating new alarm system
+                : settings.arguments is AlarmSystemModel
+                    ? (settings.arguments as AlarmSystemModel).alarmId
+                    : settings.arguments as int?;
+            
+            return MaterialPageRoute(
+              builder: (context) => AlarmEditScreen(
+                alarmId: alarmId,
+              ),
+            );
           }
           if (settings.name == AppRoutes.alarmSystems && settings.arguments != null) {
             return MaterialPageRoute(
               builder: (context) => AlarmSystemsScreen(),
             );
           }
-         
           if (settings.name == AppRoutes.alarmEvents && settings.arguments != null) {
+            // Handle both int and AlarmSystemModel arguments
+            final alarmId = settings.arguments is AlarmSystemModel 
+              ? (settings.arguments as AlarmSystemModel).alarmId 
+              : settings.arguments as int;
+            
             return MaterialPageRoute(
               builder: (context) => AlarmEventsScreen(
-                alarmId: settings.arguments as int,
-              ),
-            );
-          }
-          if (settings.name == AppRoutes.alarmDetail && settings.arguments != null) {
-            return MaterialPageRoute(
-              builder: (context) => AlarmDetailScreen(
-                alarmId: settings.arguments as int,
+                alarmId: alarmId,
               ),
             );
           }
           return null;
+        },
+        onUnknownRoute: (settings) {
+          return MaterialPageRoute(
+            builder: (context) => Scaffold(
+              appBar: AppBar(title: const Text('Page Not Found')),
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    const Text('The requested page was not found.'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => Navigator.pushReplacementNamed(
+                        context, 
+                        AppRoutes.dashboard
+                      ),
+                      child: const Text('Go to Dashboard'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
         },
       ),
     );

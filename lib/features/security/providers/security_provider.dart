@@ -120,41 +120,58 @@ class SecurityProvider extends ChangeNotifier {
   }
 }
 
-  Future<bool> saveAlarmSystem(AlarmSystemModel alarm) async {
-    try {
-      Map<String, dynamic> data = alarm.toJson();
-      
-      // For new records, remove the alarm_id field to let the database generate it
+  // Save (create or update) an alarm system
+Future<bool> saveAlarmSystem(AlarmSystemModel alarm) async {
+  try {
+    _isLoading = true;
+    notifyListeners();
+    
+    // Prepare alarm data for API
+    final alarmData = {
+      'alarm_id': alarm.alarmId,
+      'name': alarm.name,
+      'description': alarm.description,
+      'department_id': alarm.departmentId,
+      'classroom_id': alarm.classroomId,
+      'is_active': alarm.isActive,
+      'created_at': alarm.createdAt.toIso8601String(),
+      'updated_at': alarm.updatedAt.toIso8601String(),
+    };
+    
+    // Call API to save alarm system
+    final success = await SupabaseService.saveAlarmSystem(alarmData);
+    
+    if (success) {
+      // If this is a new alarm (id=0), we need to reload to get the assigned ID
       if (alarm.alarmId == 0) {
-        data.remove('alarm_id'); // Remove the ID for new records
-        
-        // Create new alarm
-        final json = await SupabaseService.createAlarmSystem(data);
-        if (json != null) {
-          final newAlarm = AlarmSystemModel.fromJson(json);
-          _alarmSystems.add(newAlarm);
-          notifyListeners();
-          return true;
+        await loadAlarmSystems();
+      } 
+      // If updating an existing alarm
+      else {
+        // Find index and update local copy
+        final index = _alarmSystems.indexWhere((a) => a.alarmId == alarm.alarmId);
+        if (index >= 0) {
+          _alarmSystems[index] = alarm;
         }
-      } else {
-        // Update existing alarm
-        final success = await SupabaseService.updateAlarmSystem(alarm.alarmId, data);
-        if (success) {
-          final index = _alarmSystems.indexWhere((a) => a.alarmId == alarm.alarmId);
-          if (index >= 0) {
-            _alarmSystems[index] = alarm;
-            notifyListeners();
-          }
-          return true;
+        
+        // If this is the currently viewed alarm, update it
+        if (_currentAlarmSystem?.alarmId == alarm.alarmId) {
+          _currentAlarmSystem = alarm;
         }
       }
-      return false;
-    } catch (e) {
-      _errorMessage = 'Failed to save alarm system: ${e.toString()}';
-      notifyListeners();
-      return false;
     }
+    
+    _isLoading = false;
+    notifyListeners();
+    return success;
+  } catch (e) {
+    _errorMessage = 'Error saving alarm system: ${e.toString()}';
+    _isLoading = false;
+    notifyListeners();
+    // Always return a boolean value, never null
+    return false;
   }
+}
 
   // Update this method in your SecurityProvider class
   Future<void> loadSecurityDevices({bool showLoading = true, int? alarmId}) async {
@@ -762,28 +779,35 @@ class SecurityProvider extends ChangeNotifier {
       return false;
     }
   }
-    // Delete alarm system
-  Future<bool> deleteAlarmSystem(int alarmId) async {
-    try {
-      await SupabaseService.deleteAlarmSystem(alarmId);
 
-      // Update local state
-      _alarmSystems.removeWhere((a) => a.alarmId == alarmId);
+  Future<bool> deleteAlarmSystem(int alarmId) async {
+  try {
+    _isLoading = true;
+    notifyListeners();
+    
+    // Delete from the database
+    final success = await SupabaseService.deleteAlarmSystem(alarmId);
+    
+    if (success) {
+      // Remove from local list if API call was successful
+      _alarmSystems.removeWhere((alarm) => alarm.alarmId == alarmId);
+      
+      // Clear current alarm if it was the one deleted
       if (_currentAlarmSystem?.alarmId == alarmId) {
         _currentAlarmSystem = null;
       }
-
-      // Update security stats
-      _securityStats['active_alarms'] = activeAlarms;
-
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _errorMessage = 'Failed to delete alarm system: ${e.toString()}';
-      notifyListeners();
-      return false;
     }
+    
+    _isLoading = false;
+    notifyListeners();
+    return success;
+  } catch (e) {
+    _errorMessage = 'Failed to delete alarm system: ${e.toString()}';
+    _isLoading = false;
+    notifyListeners();
+    return false;
   }
+}
 
   // Acknowledge alarm event
   Future<void> acknowledgeAlarmEvent(int eventId) async {

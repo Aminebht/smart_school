@@ -92,11 +92,6 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
           );
         }
         
-        final rules = provider.alarmRules;
-        final actions = provider.alarmActions;
-        final events = provider.alarmEvents;
-        final devices = provider.devices;
-        
         return Scaffold(
           appBar: AppBar(
             title: Text(alarm.name),
@@ -105,6 +100,11 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
                 value: alarm.isActive,
                 activeColor: AppColors.success,
                 onChanged: _toggleAlarmActive,
+              ),
+              IconButton(
+                icon: const Icon(Icons.delete),
+                onPressed: () => _showDeleteConfirmation(context, alarm),
+                tooltip: 'Delete Alarm System',
               ),
             ],
           ),
@@ -162,25 +162,17 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
                   
                   const SizedBox(height: 16),
                   
-                  _buildRecentEventsCard(context, events),
+                  _buildRecentEventsCard(context, provider.alarmEvents),
                   
                   const SizedBox(height: 16),
                   
-                  _buildRulesCard(context, rules),
+                  _buildRulesCard(context, provider.alarmRules),
                   
                   const SizedBox(height: 16),
                   
-                  _buildActionsCard(context, actions),
+                  _buildActionsCard(context, provider.alarmActions),
                   
-                  const SizedBox(height: 16),
                   
-                  if (devices.isNotEmpty)
-                    _buildDevicesCard(context, devices)
-                  else
-                    _buildEmptyCard(
-                      'No Connected Devices',
-                      'There are no security devices connected to this alarm system.',
-                    ),
                   
                   const SizedBox(height: 80), // Space for FAB
                 ],
@@ -589,44 +581,6 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
     );
   }
   
-  Widget _buildDevicesCard(BuildContext context, List<SecurityDeviceModel> devices) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Connected Devices',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: devices.length,
-              itemBuilder: (context, index) {
-                final device = devices[index];
-                return ListTile(
-                  leading: _getDeviceTypeIcon(device.deviceType),
-                  title: Text(device.name),
-                  subtitle: Text('${device.deviceType} • ${device.status}'),
-                  trailing: _getDeviceStatusIndicator(device.status),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
   
   Widget _buildEmptyCard(String title, String message) {
     return Card(
@@ -755,14 +709,14 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('CANCEL'),
+            child: const Text('Cancel'),
           ),
           TextButton(
-            style: ButtonStyle(
-              foregroundColor: MaterialStateProperty.all(AppColors.error),
-            ),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('DELETE'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.error,
+            ),
+            child: const Text('Delete'),
           ),
         ],
       ),
