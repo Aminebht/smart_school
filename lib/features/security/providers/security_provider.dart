@@ -332,39 +332,61 @@ Future<void> loadRecentSecurityEvents({int limit = 5, bool showLoading = true}) 
   }
 
   // Acknowledge security event
-  Future<void> acknowledgeSecurityEvent(int eventId) async {
-    try {
-      await SupabaseService.acknowledgeSecurityEvent(eventId);
-
-      // Update events in local state
-      final index = _events.indexWhere((e) => e.eventId == eventId);
-      if (index >= 0) {
-        final updatedEvent = SecurityEventModel(
-          eventId: _events[index].eventId,
-          deviceId: _events[index].deviceId,
-          deviceName: _events[index].deviceName,
-          eventType: _events[index].eventType,
-          description: _events[index].description,
-          timestamp: _events[index].timestamp,
-          isAcknowledged: true,
-          classroomName: _events[index].classroomName,
-        );
-
-        _events[index] = updatedEvent;
-
-        // Also update in recent events if needed
-        final recentIndex = _recentEvents.indexWhere((e) => e.eventId == eventId);
-        if (recentIndex >= 0) {
-          _recentEvents[recentIndex] = updatedEvent;
-        }
-
-        notifyListeners();
+  void acknowledgeSecurityEvent(int eventId) {
+  try {
+    _isLoading = true;
+    notifyListeners();
+    
+    // Call Supabase service to update the database
+    SupabaseService.acknowledgeSecurityEvent(eventId).then((success) {
+      if (success) {
+        // Update the event in the local lists
+        _updateEventAcknowledgementStatus(eventId);
+        _errorMessage = null;
+      } else {
+        _errorMessage = 'Failed to acknowledge event';
       }
-    } catch (e) {
-      _errorMessage = 'Failed to acknowledge event: ${e.toString()}';
+      
+      _isLoading = false;
       notifyListeners();
+    }).catchError((e) {
+      _errorMessage = 'Failed to acknowledge event: ${e.toString()}';
+      _isLoading = false;
+      notifyListeners();
+    });
+  } catch (e) {
+    _errorMessage = 'Failed to acknowledge event: ${e.toString()}';
+    _isLoading = false;
+    notifyListeners();
+  }
+}
+
+// Helper method to update local event data
+void _updateEventAcknowledgementStatus(int eventId) {
+  // Update in main events list
+  for (int i = 0; i < _events.length; i++) {
+    if (_events[i].eventId == eventId) {
+      _events[i] = _events[i].copyWith(
+        isAcknowledged: true,
+        acknowledgedAt: DateTime.now(),
+        acknowledgedById: SupabaseService.getCurrentUserId(),
+      );
+      break;
     }
   }
+  
+  // Update in recent events list
+  for (int i = 0; i < _recentEvents.length; i++) {
+    if (_recentEvents[i].eventId == eventId) {
+      _recentEvents[i] = _recentEvents[i].copyWith(
+        isAcknowledged: true,
+        acknowledgedAt: DateTime.now(),
+        acknowledgedById: SupabaseService.getCurrentUserId(),
+      );
+      break;
+    }
+  }
+}
 
   void _updateSecurityStats() {
     int total = _devices.length;

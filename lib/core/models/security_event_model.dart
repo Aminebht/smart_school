@@ -95,4 +95,31 @@ class SecurityEventModel {
       return '${timestamp.day}/${timestamp.month}/${timestamp.year}';
     }
   }
+
+  SecurityEventModel copyWith({
+  int? eventId,
+  int? ruleId,
+  int? deviceId,
+  String? eventType,
+  String? description,
+  String? deviceName,
+  String? location,
+  String? deviceType,
+  String? severity,
+  DateTime? timestamp,
+  bool? isAcknowledged,
+  DateTime? acknowledgedAt,
+  int? acknowledgedById,
+}) {
+  return SecurityEventModel(
+    eventId: eventId ?? this.eventId,
+    deviceId: deviceId ?? this.deviceId,
+    eventType: eventType ?? this.eventType,
+    description: description ?? this.description,
+    deviceName: deviceName ?? this.deviceName,
+    timestamp: timestamp ?? this.timestamp,
+    isAcknowledged: isAcknowledged ?? this.isAcknowledged,
+
+  );
+}
 }

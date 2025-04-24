@@ -132,7 +132,27 @@ class SecurityEventList extends StatelessWidget {
                   )
                 else if (onAcknowledge != null)
                   TextButton(
-                    onPressed: () => onAcknowledge!(event.eventId),
+                    onPressed: () {
+                      // Show a small loading indicator when acknowledging
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => const Center(
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                      
+                      // Call the acknowledge method without expecting a Future return
+                      onAcknowledge!(event.eventId);
+                      
+                      // Close the loading indicator after a short delay
+                      Future.delayed(const Duration(milliseconds: 500), () {
+                        // Check if dialog is still showing before popping
+                        if (Navigator.of(context).canPop()) {
+                          Navigator.of(context).pop();
+                        }
+                      });
+                    },
                     style: TextButton.styleFrom(
                       padding: EdgeInsets.symmetric(
                         horizontal: compact ? 4 : 8,

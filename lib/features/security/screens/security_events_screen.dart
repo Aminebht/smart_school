@@ -14,7 +14,7 @@ class SecurityEventsScreen extends StatefulWidget {
 
 class _SecurityEventsScreenState extends State<SecurityEventsScreen> {
   String _selectedFilter = 'All';
-  final List<String> _filters = ['All', 'Unacknowledged', 'Critical', 'Access', 'Motion'];
+  final List<String> _filters = ['All', 'Unacknowledged'];
   
   @override
   void initState() {
@@ -35,18 +35,6 @@ class _SecurityEventsScreenState extends State<SecurityEventsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Security Events'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-            onPressed: () {
-              // Use Future.microtask to ensure we're not in a build phase
-              Future.microtask(() {
-                _loadEvents();
-              });
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [
@@ -100,9 +88,14 @@ class _SecurityEventsScreenState extends State<SecurityEventsScreen> {
                 }
                 
                 return SecurityEventList(
-                  events: events,
+                  events: _filterEvents(provider),
                   onAcknowledge: (eventId) {
+                    // Return void instead of Future
                     provider.acknowledgeSecurityEvent(eventId);
+                    // Optional: refresh the list after a short delay
+                    Future.delayed(const Duration(milliseconds: 1000), () {
+                      if (mounted) _loadEvents();
+                    });
                   },
                 );
               },
@@ -119,19 +112,6 @@ class _SecurityEventsScreenState extends State<SecurityEventsScreen> {
     switch (_selectedFilter) {
       case 'Unacknowledged':
         return events.where((e) => !e.isAcknowledged).toList();
-      case 'Critical':
-        return events.where((e) => 
-          e.eventType.toLowerCase().contains('breach') || 
-          e.eventType.toLowerCase().contains('alarm') ||
-          e.eventType.toLowerCase().contains('unauthorized') ||
-          e.eventType.toLowerCase().contains('forced')).toList();
-      case 'Access':
-        return events.where((e) => 
-          e.eventType.toLowerCase().contains('access') || 
-          e.eventType.toLowerCase().contains('door')).toList();
-      case 'Motion':
-        return events.where((e) => 
-          e.eventType.toLowerCase().contains('motion')).toList();
       default:
         return events;
     }

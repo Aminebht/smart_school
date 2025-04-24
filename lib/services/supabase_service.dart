@@ -676,19 +676,28 @@ class SupabaseService {
   }
 
   // Acknowledge security event
-  static Future<void> acknowledgeSecurityEvent(int eventId) async {
-    final client = await getClient();
+  static Future<bool> acknowledgeSecurityEvent(int eventId) async {
+  try {
+    // Get current timestamp for the acknowledged_at field
+    final now = DateTime.now().toIso8601String();
     
-    try {
-      // In a real app, you'd update your security_events table
-      // For this example, we'll just print since motion_events doesn't have this column
-      print('Acknowledged event $eventId');
-      
-    } catch (e) {
-      print('Error acknowledging security event: $e');
-      throw e;
-    }
+    // Update the event in Supabase
+    await client
+        .from('alarm_events')
+        .update({
+          'acknowledged': true,
+          'acknowledged_at': now,
+          'acknowledged_by_user_id': client.auth.currentUser?.id,
+        })
+        .eq('event_id', eventId);
+    
+    // If we made it here without an exception, the update was successful
+    return true;
+  } catch (e) {
+    print('Error acknowledging event: $e');
+    return false;
   }
+}
 
   // Get alarm system status
   static Future<String> getAlarmSystemStatus() async {
