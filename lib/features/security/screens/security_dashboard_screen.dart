@@ -97,23 +97,6 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
             compact: true,
             maxEvents: 5,
           ),
-          const SizedBox(height: 24),
-           const Text(
-            'Security Status by Location',
-            style: TextStyle(
-              fontSize: 18, 
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          DeviceStatusGrid(
-            doorDevices: provider.doorDevices,
-            windowDevices: provider.windowDevices,
-            motionDevices: provider.motionDevices,
-            onToggleDevice: (deviceId, secure) {
-              provider.toggleSecurityDevice(deviceId: deviceId, secure: secure);
-            },
-          ),
           // Recent Events Section
           
           const SizedBox(height: 24),
