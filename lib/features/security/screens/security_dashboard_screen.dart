@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_school/core/models/alarm_system_model.dart';
 import '../providers/security_provider.dart';
-import '../widgets/security_status_card.dart';
 import '../widgets/security_event_list.dart';
 import '../widgets/device_status_grid.dart';
 import '../widgets/alarm_control_widget.dart';
@@ -37,23 +36,6 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Security Dashboard'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.event_note),
-                tooltip: 'View All Events',
-                onPressed: () {
-                  Navigator.pushNamed(context, AppRoutes.securityEvents);
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                tooltip: 'Refresh',
-                onPressed: () {
-                  provider.loadSecurityDevices(alarmId: 0);
-                  provider.loadAlarmSystems();
-                },
-              ),
-            ],
           ),
           body: RefreshIndicator(
             onRefresh: () async {
@@ -85,33 +67,10 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Security Status Summary
-          SecurityStatusCard(stats: provider.securityStats),
-          
-          const SizedBox(height: 24),
-          
+          _buildAlarmSystemsSection(context, provider),
+          const SizedBox(height: 24),  
           // Door/Window Status Section
-          const Text(
-            'Security Status by Location',
-            style: TextStyle(
-              fontSize: 18, 
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          DeviceStatusGrid(
-            doorDevices: provider.doorDevices,
-            windowDevices: provider.windowDevices,
-            motionDevices: provider.motionDevices,
-            onToggleDevice: (deviceId, secure) {
-              provider.toggleSecurityDevice(deviceId: deviceId, secure: secure);
-            },
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // Recent Events Section
-          Row(
+         Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
@@ -139,7 +98,26 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
             maxEvents: 5,
           ),
           const SizedBox(height: 24),
-          _buildAlarmSystemsSection(context, provider),
+           const Text(
+            'Security Status by Location',
+            style: TextStyle(
+              fontSize: 18, 
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          DeviceStatusGrid(
+            doorDevices: provider.doorDevices,
+            windowDevices: provider.windowDevices,
+            motionDevices: provider.motionDevices,
+            onToggleDevice: (deviceId, secure) {
+              provider.toggleSecurityDevice(deviceId: deviceId, secure: secure);
+            },
+          ),
+          // Recent Events Section
+          
+          const SizedBox(height: 24),
+          
           
           const SizedBox(height: 40),
         ],

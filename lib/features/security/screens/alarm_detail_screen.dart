@@ -131,42 +131,6 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
         return Scaffold(
           appBar: AppBar(
             title: Text(alarm.name),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                tooltip: 'Refresh',
-                onPressed: _loadData,
-              ),
-              PopupMenuButton<String>(
-                onSelected: (value) {
-                  if (value == 'edit') {
-                    Navigator.pushNamed(
-                      context,
-                      AppRoutes.alarmEdit,
-                      arguments: alarm.alarmId,
-                    ).then((_) => _loadData());
-                  } else if (value == 'delete') {
-                    _showDeleteConfirmation(context, alarm);
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: ListTile(
-                      leading: Icon(Icons.edit),
-                      title: Text('Edit'),
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: ListTile(
-                      leading: Icon(Icons.delete, color: AppColors.error),
-                      title: Text('Delete', style: TextStyle(color: AppColors.error)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
           ),
           body: RefreshIndicator(
             onRefresh: _loadData,
@@ -175,10 +139,7 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Alarm arm status card
-                  _buildAlarmStatusCard(context, alarm),
-                  
-                  const SizedBox(height: 16),
+              
                   
                   // Alarm information card
                   _buildAlarmInfoCard(context, alarm),
@@ -213,160 +174,12 @@ class _AlarmDetailScreenState extends State<AlarmDetailScreen> {
               ),
             ),
           ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _showArmingOptions(context, alarm),
-            backgroundColor: _getArmStatusFabColor(alarm.armStatus),
-            child: const Icon(Icons.security),
-          ),
+       
         );
       },
     );
   }
   
-  Color _getArmStatusFabColor(String status) {
-    switch (status) {
-      case 'armed_stay':
-      case 'armed_away':
-        return AppColors.success;
-      case 'disarmed':
-        return AppColors.warning;
-      default:
-        return AppColors.primary;
-    }
-  }
-  
-  void _showArmingOptions(BuildContext context, AlarmSystemModel alarm) {
-    if (_isArming) return;
-    
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: const Text('Arm Stay'),
-                subtitle: const Text('Arms perimeter sensors only'),
-                leading: const Icon(Icons.home, color: AppColors.success),
-                enabled: alarm.armStatus != 'armed_stay',
-                onTap: () {
-                  Navigator.pop(context);
-                  _changeArmStatus('armed_stay');
-                },
-              ),
-              ListTile(
-                title: const Text('Arm Away'),
-                subtitle: const Text('Arms all sensors'),
-                leading: const Icon(Icons.directions_walk, color: AppColors.success),
-                enabled: alarm.armStatus != 'armed_away',
-                onTap: () {
-                  Navigator.pop(context);
-                  _changeArmStatus('armed_away');
-                },
-              ),
-              ListTile(
-                title: const Text('Disarm'),
-                subtitle: const Text('Turns off all alarm monitoring'),
-                leading: const Icon(Icons.lock_open, color: AppColors.warning),
-                enabled: alarm.armStatus != 'disarmed',
-                onTap: () {
-                  Navigator.pop(context);
-                  _changeArmStatus('disarmed');
-                },
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-  
-  Widget _buildAlarmStatusCard(BuildContext context, AlarmSystemModel alarm) {
-    Color statusColor;
-    IconData statusIcon;
-    String statusText;
-    
-    switch (alarm.armStatus) {
-      case 'armed_stay':
-        statusColor = AppColors.success;
-        statusIcon = Icons.home;
-        statusText = 'Armed Stay';
-        break;
-      case 'armed_away':
-        statusColor = AppColors.success;
-        statusIcon = Icons.directions_walk;
-        statusText = 'Armed Away';
-        break;
-      case 'disarmed':
-        statusColor = AppColors.warning;
-        statusIcon = Icons.lock_open;
-        statusText = 'Disarmed';
-        break;
-      default:
-        statusColor = AppColors.secondary;
-        statusIcon = Icons.security;
-        statusText = alarm.armStatus;
-    }
-    
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: statusColor.withOpacity(0.5), width: 1),
-      ),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  statusIcon,
-                  color: statusColor,
-                  size: 36,
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  statusText,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: statusColor,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Status: ${alarm.isActive ? 'Active' : 'Inactive'}',
-              style: TextStyle(
-                color: alarm.isActive ? AppColors.success : AppColors.error,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _getStatusDescription(alarm.armStatus),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: () => _showArmingOptions(context, alarm),
-              style: ButtonStyle(
-                foregroundColor: MaterialStateProperty.all(statusColor),
-                side: MaterialStateProperty.all(BorderSide(color: statusColor)),
-              ),
-              child: const Text('CHANGE STATUS'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
   
   String _getStatusDescription(String status) {
     switch (status) {
