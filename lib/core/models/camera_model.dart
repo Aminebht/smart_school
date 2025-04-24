@@ -1,87 +1,92 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/material.dart';
 
 class CameraModel {
   final int cameraId;
-  final int? deviceId;
-  final String streamUrl;
-  final bool motionDetectionEnabled; // Renamed to match DB column
-  final DateTime? createdAt;
-  final DateTime? updatedAt;
-  
-  // Additional fields needed for app functionality but not directly in DB table
   final String name;
-  final String description;
-  final int? classroomId; // Made optional since it's not in the DB table
-  final String cameraType;
+  final String streamUrl;
   final bool isActive;
-  final bool isRecording;
-  
+  final int? deviceId;
+  final int? classroomId;
+  final String? classroomName;
+
   CameraModel({
     required this.cameraId,
-    this.deviceId,
+    required this.name,
     required this.streamUrl,
-    required this.motionDetectionEnabled, // Renamed parameter
-    this.createdAt,
-    this.updatedAt,
-    
-    // App fields with defaults
-    this.name = '',
-    this.description = '',
-    this.classroomId, // No longer required
-    this.cameraType = 'standard',
     this.isActive = true,
-    this.isRecording = true,
+    this.deviceId,
+    this.classroomId,
+    this.classroomName, required bool motionDetectionEnabled, required String description, required bool isRecording,
   });
 
   factory CameraModel.fromJson(Map<String, dynamic> json) {
     return CameraModel(
-      cameraId: json['camera_id'] as int,
-      deviceId: json['device_id'] as int?,
-      streamUrl: json['stream_url'] as String? ?? '',
-      motionDetectionEnabled: json['motion_detection_enabled'] as bool? ?? true, // Updated column name
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'] as String)
-          : null,
-          
-      // Map additional app fields
-      name: json['name'] as String? ?? 'Camera ${json['camera_id']}',
-      description: json['description'] as String? ?? '',
-      classroomId: json['classroom_id'] as int?, // May come from a joined query
-      cameraType: json['camera_type'] as String? ?? 'standard',
-      isActive: json['is_active'] as bool? ?? false,
-      isRecording: json['is_recording'] as bool? ?? false,
+      cameraId: json['camera_id'] ?? json['id'] ?? 0,
+      name: json['name'] ?? 'Unnamed Camera',
+      streamUrl: json['stream_url'] ?? json['streamUrl'] ?? '',
+      isActive: json['is_active'] ?? json['isActive'] ?? true,
+      deviceId: json['device_id'] ?? json['deviceId'],
+      classroomId: json['classroom_id'] ?? json['classroomId'],
+      classroomName: json['classroom_name'] ?? json['classroomName'], motionDetectionEnabled: true, description: '', isRecording: true,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'camera_id': cameraId,
-      'device_id': deviceId,
-      'stream_url': streamUrl,
-      'motion_detection_enabled': motionDetectionEnabled, // Updated column name
-      'created_at': createdAt?.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
-      
-      // Additional app fields - these won't be used when inserting into the cameras table
       'name': name,
-      'description': description,
-      'classroom_id': classroomId,
-      'camera_type': cameraType,
+      'stream_url': streamUrl,
       'is_active': isActive,
-      'is_recording': isRecording,
+      'device_id': deviceId,
+      'classroom_id': classroomId,
     };
   }
+}
 
-  // Getter for compatibility with existing code
-  bool get motionDetect => motionDetectionEnabled;
-  bool get hasMotionDetection => motionDetectionEnabled;
-  bool get hasMotion => motionDetectionEnabled;
+class CameraProvider extends ChangeNotifier {
+  bool _isFullscreen = false;
+  bool _isRecording = false;
+  bool _isPanning = false;
+  bool _isLoading = false;
+  double _zoomLevel = 1.0;
+  String _recordingDuration = "00:00";
+  Timer? _recordingTimer;
+  int _recordingSeconds = 0;
+  String? _errorMessage;
+  dynamic _camera;
 
-  @override
-  String toString() {
-    return jsonEncode(toJson());
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  dynamic get camera => _camera;
+
+  bool get isFullscreen => _isFullscreen;
+  bool get isRecording => _isRecording;
+  bool get isPanning => _isPanning;
+  double get zoomLevel => _zoomLevel;
+  String get recordingDuration => _recordingDuration;
+
+  Future<void> loadCamera(int cameraId) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await Future.delayed(const Duration(seconds: 1));
+
+      _camera = {
+        'id': cameraId,
+        'name': 'Camera $cameraId',
+        'streamUrl': 'https://mystream.loca.lt',
+        'isActive': true,
+      };
+      _isLoading = false;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Failed to load camera: $e';
+    }
+
+    notifyListeners();
   }
 }

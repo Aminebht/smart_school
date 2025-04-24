@@ -913,7 +913,7 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
           deviceId: -1,
           name: 'Unknown Sensor',
           streamUrl: '', 
-          motionDetectionEnabled: false,
+          motionDetectionEnabled: false, description: '', isRecording: true,
         ),
       );
       
@@ -1007,7 +1007,7 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
           deviceId: -1,
           name: 'Unknown Sensor',
           streamUrl: '', 
-          motionDetectionEnabled: false,
+          motionDetectionEnabled: false, description: '', isRecording:false,
         ),
       );
       

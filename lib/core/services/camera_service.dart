@@ -60,7 +60,7 @@ class CameraService {
   CameraModel _createMockCamera(int classroomId) {
     return CameraModel(
       cameraId: -1,  // Negative ID to indicate mock
-      streamUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', // Public test video
+      streamUrl: 'https://mystream.loca.lt', // Public test video
       motionDetectionEnabled: true,
       name: "Test Camera",
       description: "Mock camera for testing",
