@@ -38,19 +38,37 @@ class AlertsProvider extends ChangeNotifier {
         resolved: resolved,
       );
       
+      // Debug the raw data structure
+      if (alertsJson.isNotEmpty) {
+        print('Sample alert raw data: ${alertsJson[0]}');
+      }
+      
       _alerts = alertsJson.map((json) {
-        // Create alert data structure for model
-        final Map<String, dynamic> alertData = {
-          ...json,
-        };
-        
-        // Handle devices data - it will be a nested object, not a column
-        if (json['devices'] != null) {
-          alertData['device_name'] = json['devices']['name'];
-          alertData['device_location'] = json['devices']['location'];
+        try {
+          // Add try-catch for each item to prevent a single bad item from crashing everything
+          final alertData = {...json};
+          
+          // Handle devices data if exists
+          if (json['devices'] != null) {
+            alertData['device_name'] = json['devices']['model'];
+            alertData['device_location'] = json['devices']['location'];
+          }
+          
+          return AlertModel.fromJson(alertData);
+        } catch (e) {
+          print('Error parsing alert: $e');
+          print('Problematic JSON: $json');
+          // Return a placeholder alert instead of crashing
+          return AlertModel(
+            alertId: 0,
+            deviceId: 0,
+            alertType: 'Error',
+            severity: 'error',
+            message: 'Failed to parse this alert: $e',
+            timestamp: DateTime.now(),
+            resolved: false,
+          );
         }
-        
-        return AlertModel.fromJson(alertData);
       }).toList();
 
       if (showLoading) {
@@ -114,20 +132,26 @@ class AlertsProvider extends ChangeNotifier {
     notifyListeners();
     
     try {
+      print('Attempting to resolve alert $alertId');
       final success = await SupabaseService.resolveAlert(alertId);
       
       if (success) {
         // Update the alert in the local lists
         _updateAlertResolvedStatus(alertId);
+        print('Alert $alertId resolved successfully');
+      } else {
+        _errorMessage = 'Failed to update alert status in database';
+        print('Failed to resolve alert $alertId');
       }
       
       _isLoading = false;
       notifyListeners();
       return success;
     } catch (e) {
-      _errorMessage = 'Failed to resolve alert: ${e.toString()}';
+      _errorMessage = 'Error resolving alert: ${e.toString()}';
       _isLoading = false;
       notifyListeners();
+      print('Exception while resolving alert: $e');
       return false;
     }
   }

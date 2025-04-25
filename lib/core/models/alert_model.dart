@@ -79,21 +79,44 @@ class AlertModel {
 
   factory AlertModel.fromJson(Map<String, dynamic> json) {
   return AlertModel(
-    alertId: json['alert_id'],
-    deviceId: json['device_id'],
-    alertType: json['alert_type'] ?? 'unknown',
+    // Parse numeric fields with appropriate type conversion
+    alertId: _parseIntField(json['alert_id']),
+    deviceId: _parseIntField(json['device_id']),
+    
+    // String fields with null safety
+    alertType: json['alert_type'] ?? 'Unknown',
     severity: json['severity'] ?? 'info',
     message: json['message'] ?? 'No details available',
+    
+    // Date fields with null safety
     timestamp: json['timestamp'] != null 
-        ? DateTime.parse(json['timestamp']) 
+        ? DateTime.parse(json['timestamp'].toString()) 
         : DateTime.now(),
-    resolved: json['resolved'] ?? false,
+    resolved: json['resolved'] == true,  // Handle any type safely
     resolvedAt: json['resolved_at'] != null 
-        ? DateTime.parse(json['resolved_at']) 
+        ? DateTime.parse(json['resolved_at'].toString()) 
         : null,
-    resolvedById: json['resolved_by_user_id'],
-    deviceName: json['device_name'] ?? json['devices']?['model'] ?? 'Unknown Device',
-    deviceLocation: json['device_location'] ?? json['devices']?['location'] ?? 'Unknown Location',
+    
+    // Nullable fields with type conversion
+    resolvedById: json['resolved_by_user_id'] != null 
+        ? _parseIntField(json['resolved_by_user_id']) 
+        : null,
+    
+    // String fields from nested objects
+    deviceName: json['device_name'] ?? 
+                (json['devices'] != null ? json['devices']['model']?.toString() : null),
+    deviceLocation: json['device_location'] ?? 
+                   (json['devices'] != null ? json['devices']['location']?.toString() : null),
   );
+}
+
+// Add this helper method in your AlertModel class
+static int _parseIntField(dynamic value) {
+  if (value == null) return 0;
+  if (value is int) return value;
+  if (value is String) {
+    return int.tryParse(value) ?? 0;
+  }
+  return 0; // Default value if parsing fails
 }
 }

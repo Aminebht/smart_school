@@ -473,36 +473,39 @@ class SupabaseService {
 }) async {
   final client = await getClient();
   try {
-    // IMPORTANT: Use double quotes for table and column names in foreign key relationship
-    String query = '*';
-    
-    // Check if devices table exists before adding the join
-    try {
-      // First check if the table exists and has the needed columns
-      await client.from('devices').select('model').limit(1);
-      // If no error, add the join
-      query = '*,devices:device_id(model,location)';
-    } catch (e) {
-      print('Warning: devices table might be missing, proceeding without join: $e');
-      // Just continue with basic query
-    }
-    
-    // Start with the base query
-    var baseQuery = client.from('alerts').select(query);
+    // Start with the base query - using proper join syntax
+    var query = client
+        .from('alerts')
+        .select('''
+          *,
+          devices:device_id (
+            model, 
+            location
+          )
+        ''')
+        ;
     
     // Apply filters
     if (severity != null) {
-      baseQuery = baseQuery.eq('severity', severity);
+      query = query.eq('severity', severity);
     }
     
     if (resolved != null) {
-      baseQuery = baseQuery.eq('resolved', resolved);
+      query = query.eq('resolved', resolved);
     }
     
-    // Apply ordering and limit
-    final data = await baseQuery
+    // Apply order and limit at the end
+    final data = await query
         .order('timestamp', ascending: false)
         .limit(limit);
+    
+    // Debug the data before returning
+    if (data is List && data.isNotEmpty) {
+      print('First alert data structure:');
+      data[0].forEach((key, value) {
+        print('  $key: ${value.runtimeType} = $value');
+      });
+    }
     
     return List<Map<String, dynamic>>.from(data);
   } catch (e) {
@@ -545,15 +548,20 @@ static Future<bool> resolveAlert(int alertId) async {
     // Get current timestamp for the resolved_at field
     final now = DateTime.now().toIso8601String();
     
-    await client
+    // Get current user ID
+    final userId = client.auth.currentUser?.id;
+    
+    // Update the alert in the database
+    final response = await client
         .from('alerts')
         .update({
           'resolved': true,
           'resolved_at': now,
-          'resolved_by_user_id': client.auth.currentUser?.id,
+          'resolved_by_user_id': userId,
         })
         .eq('alert_id', alertId);
     
+    print('Alert $alertId marked as resolved by user $userId');
     return true;
   } catch (e) {
     print('Error resolving alert: $e');
@@ -1342,6 +1350,22 @@ static Future<bool> saveAlarmSystem(Map<String, dynamic> alarmData) async {
     print('Error saving alarm system: $e');
     // Return false instead of null for error cases
     return false;
+  }
+}
+static Future<int> getUnresolvedAlertCount() async {
+  final client = await getClient();
+  try {
+    // Simple approach: just fetch the records and count them
+    final data = await client
+        .from('alerts')
+        .select('alert_id') // Select only ID for efficiency
+        .eq('resolved', false);
+    
+    // The response is a List in most SDK versions
+      return data.length;
+  } catch (e) {
+    print('Error getting unresolved alert count: $e');
+    return 0;
   }
 }
 }
