@@ -41,7 +41,7 @@ class AppRoutes {
   static const department = '/department';
   static const classroom = '/classroom';
   static const camera = '/camera';
-  
+  static const settings = '/settings';
   // Security routes
   static const security = '/security';
   static const securityEvents = '/security_events';
@@ -56,4 +56,5 @@ class AppRoutes {
    static const int dashboardIndex = 0;
   static const int departmentIndex = 1;
   static const int securityIndex = 2;
+  static const int settingsIndex = 3; 
 }

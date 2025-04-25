@@ -30,7 +30,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         appBar: AppBar(
           title: const Text('Dashboard'),
         ),
-        drawer: _buildDrawer(context, user),
         body: Consumer<DashboardProvider>(
           builder: (context, dashboardProvider, _) {
             if (dashboardProvider.isLoading) {
@@ -297,80 +296,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             text: 'Retry',
             onPressed: () => provider.loadDashboardData(),
             icon: Icons.refresh,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDrawer(BuildContext context, user) {
-    return Drawer(
-      child: Column(
-        children: [
-          UserAccountsDrawerHeader(
-            accountName: Text(user?.name ?? 'User Name'),
-            accountEmail: Text(user?.email ?? 'user@example.com'),
-            currentAccountPicture: CircleAvatar(
-              backgroundColor: Colors.white,
-              child: Text(
-                user?.name?.isNotEmpty == true
-                    ? user!.name[0].toUpperCase()
-                    : 'U',
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-            decoration: const BoxDecoration(color: AppColors.primary),
-          ),
-          ListTile(
-            leading: const Icon(Icons.dashboard),
-            title: const Text('Dashboard'),
-            selected: true,
-            onTap: () => Navigator.pop(context),
-          ),
-          ListTile(
-            leading: const Icon(Icons.business),
-            title: const Text('Departments'),
-            onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, AppRoutes.department);
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.security),
-            title: const Text('Security'),
-            onTap: () {
-              Navigator.pop(context);
-              // TODO: Navigate to security screen
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.analytics),
-            title: const Text('Analytics'),
-            onTap: () {
-              Navigator.pop(context);
-              // TODO: Navigate to analytics screen
-            },
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.settings),
-            title: const Text('Settings'),
-            onTap: () {
-              Navigator.pop(context);
-              // TODO: Navigate to settings screen
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.logout),
-            title: const Text('Sign Out'),
-            onTap: () {
-              Provider.of<AuthProvider>(context, listen: false).signOut();
-              Navigator.pushReplacementNamed(context, AppRoutes.login);
-            },
           ),
         ],
       ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../features/dashboard/screens/dashboard_screen.dart';
 import '../../../features/department/screens/department_list_screen.dart';
 import '../../../features/security/screens/security_dashboard_screen.dart';
+import '../../../features/settings/screens/settings_screen.dart';
 import '../../../core/constants/app_constants.dart';
 
 class BottomNavContainer extends StatefulWidget {
@@ -28,6 +29,7 @@ class _BottomNavContainerState extends State<BottomNavContainer> {
       DashboardScreen(),
       DepartmentListScreen(),
       SecurityDashboardScreen(),
+      SettingsScreen(), // Add the settings screen
     ];
   }
 
@@ -47,6 +49,7 @@ class _BottomNavContainerState extends State<BottomNavContainer> {
         },
         selectedItemColor: AppColors.primary,
         unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed, // Important for 4+ items
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
@@ -59,6 +62,10 @@ class _BottomNavContainerState extends State<BottomNavContainer> {
           BottomNavigationBarItem(
             icon: Icon(Icons.security),
             label: 'Security',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
           ),
         ],
       ),

@@ -286,4 +286,56 @@ class AuthProvider extends ChangeNotifier {
       return false;
     }
   }
+
+  Future<void> updateUserProfile({String? name}) async {
+    try {
+      // Update user metadata in Supabase
+      final response = await SupabaseService.client.auth.updateUser(
+        UserAttributes(
+          data: {'name': name},  // This is correct for user_metadata
+        ),
+      );
+      
+      if (response.user != null) {
+        // Update the local user model
+        _user = UserModel.fromJson({
+          'id': response.user!.id,
+          'email': response.user!.email,
+          'name': name ?? _user?.name,
+          'role': _user?.role ?? 'teacher',
+        });
+        
+        // Also update the user profile in the 'profiles' table if you have one
+        await _updateUserProfileInDatabase(name);
+        
+        notifyListeners();
+      } else {
+        throw Exception('Failed to update user profile');
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to update profile: ${e.toString()}';
+      notifyListeners();
+      throw e;
+    }
+  }
+
+  // Add this helper method to update the database profile
+  Future<void> _updateUserProfileInDatabase(String? name) async {
+    try {
+      if (_user == null) return;
+      
+      // Update the profiles table (create it if you don't have one)
+      await SupabaseService.client
+          .from('users')  // You might need to change this to your actual table name
+          .upsert({
+            'user_id': _user!.id,  // Use the user's ID as the primary key
+            'name': name,
+            'updated_at': DateTime.now().toIso8601String(),
+          });
+          
+    } catch (e) {
+      print('Error updating profile in database: $e');
+      // Don't throw here, we already updated Auth metadata
+    }
+  }
 }
