@@ -32,6 +32,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+        appBar: AppBar(
+        title: const Text('Dashboard'),
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+      ),
       body: Consumer<DashboardProvider>(
         builder: (context, dashboardProvider, _) {
           return RefreshIndicator(

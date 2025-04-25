@@ -51,7 +51,12 @@ class RecentAlerts extends StatelessWidget {
             else
               Column(
                 children: alerts
-                    .map((alert) => AlertListItem(alert: alert))
+                    .map((alert) => AlertListItem(
+                          alert: alert,
+                          onTap: () {
+                            onViewAllTap();
+                          },
+                        ))
                     .toList(),
               ),
           ],
@@ -62,10 +67,12 @@ class RecentAlerts extends StatelessWidget {
 
 class AlertListItem extends StatelessWidget {
   final AlertModel alert;
+  final VoidCallback? onTap; // Add this parameter
 
   const AlertListItem({
     super.key,
     required this.alert,
+    this.onTap, // Make it optional
   });
 
   @override
@@ -76,61 +83,66 @@ class AlertListItem extends StatelessWidget {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
+      child: InkWell(
+        // Use the passed onTap callback
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+        children: [
+          // Alert icon with severity color background
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+          color: alert.severityColor.withOpacity(0.1),
+          shape: BoxShape.circle,
+            ),
+            child: Icon(
+          alert.alertIcon,
+          color: alert.severityColor,
+          size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          
+          // Alert info
+          Expanded(
+            child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Alert icon with severity color background
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: alert.severityColor.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                alert.alertIcon,
-                color: alert.severityColor,
-                size: 20,
-              ),
-            ),
-            const SizedBox(width: 12),
-            
-            // Alert info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    alert.title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.text,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    alert.message,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.textSecondary,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            
-            // Timestamp
             Text(
-              formatDateTime(alert.timestamp),
+              alert.title,
               style: const TextStyle(
-                fontSize: 10,
-                color: AppColors.textSecondary,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.text,
               ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              alert.message,
+              style: const TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
+            ),
+          ),
+          
+          // Timestamp
+          Text(
+            formatDateTime(alert.timestamp),
+            style: const TextStyle(
+          fontSize: 10,
+          color: AppColors.textSecondary,
+            ),
+          ),
+        ],
+          ),
         ),
       ),
     );
