@@ -37,7 +37,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       create: (_) => DashboardProvider(),
       child: Scaffold(
         appBar: AppBar(
+          automaticallyImplyLeading: false,
           title: const Text('Dashboard'),
+          centerTitle: true,
         ),
         body: Consumer<DashboardProvider>(
           builder: (context, dashboardProvider, _) {
@@ -68,74 +70,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     
                     // Departments section
                     _buildDepartmentsSection(dashboardProvider),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Security Card
-                    Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.pushReplacement(
-                          context, 
-                          MaterialPageRoute(
-                            builder: (context) => const BottomNavContainer(initialIndex: AppRoutes.securityIndex),
-                          ),
-                        );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Row(
-                                children: [
-                                  Icon(
-                                    Icons.security,
-                                    color: AppColors.primary,
-                                    size: 24,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    'Security',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Monitor security alerts, door status and control alarm system',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                child: const Text(
-                                  'Security Management',
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
                     
                     const SizedBox(height: 24),
                     

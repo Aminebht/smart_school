@@ -37,7 +37,10 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
         // Use the data, don't load it here
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Security Dashboard'),
+            title: const Text('Security'),
+            automaticallyImplyLeading: false,
+        
+          centerTitle: true,
           ),
           body: RefreshIndicator(
             onRefresh: () async {

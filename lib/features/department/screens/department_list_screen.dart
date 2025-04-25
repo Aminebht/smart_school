@@ -14,6 +14,8 @@ class DepartmentListScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Departments'),
+        automaticallyImplyLeading: false,
+          centerTitle: true,
       ),
       body: Consumer<DashboardProvider>(
         builder: (context, provider, _) {

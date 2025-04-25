@@ -73,6 +73,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
+        automaticallyImplyLeading: false,
+        centerTitle: true,
       ),
       body: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
