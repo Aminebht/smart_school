@@ -12,139 +12,177 @@ class SecurityEventsScreen extends StatefulWidget {
   State<SecurityEventsScreen> createState() => _SecurityEventsScreenState();
 }
 
-class _SecurityEventsScreenState extends State<SecurityEventsScreen> {
-  String _selectedFilter = 'All';
-  final List<String> _filters = ['All', 'Unacknowledged'];
+class _SecurityEventsScreenState extends State<SecurityEventsScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  bool _isLoading = false;
   
   @override
   void initState() {
     super.initState();
-    // Use addPostFrameCallback to ensure we're not in a build phase
+    _tabController = TabController(length: 3, vsync: this);
+    
+    // Add listener to reload data when tab changes
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        _loadEvents();
+      }
+    });
+    
+    // Load initial data after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadEvents();
     });
   }
-
-  Future<void> _loadEvents() async {
-    final provider = Provider.of<SecurityProvider>(context, listen: false);
-    await provider.loadSecurityEvents(limit: 50);
+  
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
-
+  
+  Future<void> _loadEvents() async {
+    if (_isLoading) return;
+    
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final provider = Provider.of<SecurityProvider>(context, listen: false);
+      
+      // Load different data based on the selected tab
+      switch (_tabController.index) {
+        case 0: // All events
+          await provider.loadSecurityEvents();
+          break;
+        case 1: // Unacknowledged events
+          await provider.loadSecurityEvents(acknowledged: false);
+          break;
+        case 2: // Acknowledged events
+          await provider.loadSecurityEvents(acknowledged: true);
+          break;
+      }
+    } catch (e) {
+      print('Error loading security events: $e');
+      // Don't show error UI here, let the Consumer handle it
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Security Events'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'All'),
+            Tab(text: 'Unacknowledged'),
+            Tab(text: 'Acknowledged'),
+          ],
+        ),
       ),
-      body: Column(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          // Filters
-          Container(
-            height: 60,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _filters.length,
-              itemBuilder: (context, index) {
-                final filter = _filters[index];
-                final isSelected = filter == _selectedFilter;
-                
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(filter),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      if (selected) {
-                        setState(() {
-                          _selectedFilter = filter;
-                        });
-                      }
-                    },
-                  ),
-                );
-              },
-            ),
-          ),
-          
-          // Events list
-          Expanded(
-            child: Consumer<SecurityProvider>(
-              builder: (context, provider, child) {
-                if (provider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (provider.errorMessage != null && provider.events.isEmpty) {
-                  return _buildErrorView(provider);
-                }
-
-                final events = _filterEvents(provider);
-                
-                if (events.isEmpty) {
-                  return const Center(
-                    child: Text('No events match the current filter'),
-                  );
-                }
-                
-                return SecurityEventList(
-                  events: _filterEvents(provider),
-                  onAcknowledge: (eventId) {
-                    // Return void instead of Future
-                    provider.acknowledgeSecurityEvent(eventId);
-                    // Optional: refresh the list after a short delay
-                    Future.delayed(const Duration(milliseconds: 1000), () {
-                      if (mounted) _loadEvents();
-                    });
-                  },
-                );
-              },
-            ),
-          ),
+          _buildEventsList(null),     // All events
+          _buildEventsList(false),    // Unacknowledged events
+          _buildEventsList(true),     // Acknowledged events
         ],
       ),
     );
   }
   
-  List<SecurityEventModel> _filterEvents(SecurityProvider provider) {
-    final events = provider.events;
-    
-    switch (_selectedFilter) {
-      case 'Unacknowledged':
-        return events.where((e) => !e.isAcknowledged).toList();
-      default:
-        return events;
-    }
-  }
-  
-  Widget _buildErrorView(SecurityProvider provider) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.error_outline,
-            size: 64,
-            color: AppColors.error,
+  Widget _buildEventsList(bool? acknowledged) {
+    return Consumer<SecurityProvider>(
+      builder: (context, provider, child) {
+        // Show loading state if we're loading for the first time
+        if (_isLoading && provider.securityEvents.isEmpty) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
+        // Show error if there is one
+        if (provider.errorMessage != null && provider.securityEvents.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                const SizedBox(height: 16),
+                Text(
+                  provider.errorMessage!,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _loadEvents,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        // Filter events based on the acknowledged parameter
+        final events = acknowledged == null 
+            ? provider.securityEvents
+            : provider.securityEvents.where((e) => e.acknowledged == acknowledged).toList();
+        
+        // Show empty state if there are no events
+        if (events.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.event_note, size: 48, color: Colors.grey),
+                const SizedBox(height: 16),
+                Text(
+                  acknowledged == null
+                    ? 'No security events found'
+                    : acknowledged 
+                        ? 'No acknowledged events'
+                        : 'No unacknowledged events',
+                  style: const TextStyle(fontSize: 16),
+                ),
+              ],
+            ),
+          );
+        }
+        
+        // Show the events list
+        return RefreshIndicator(
+          onRefresh: _loadEvents,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: SecurityEventList(
+              events: events,
+              onAcknowledge: (eventId) async {
+                final success = await provider.acknowledgeSecurityEvent(eventId);
+                
+                if (success && mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Event acknowledged')),
+                  );
+                } else if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Failed to acknowledge event'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
+            ),
           ),
-          const SizedBox(height: 16),
-          Text(
-            provider.errorMessage ?? 'An error occurred',
-            textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.error),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () {
-              Future.microtask(() {
-                _loadEvents();
-              });
-            },
-            icon: const Icon(Icons.refresh),
-            label: const Text('Retry'),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

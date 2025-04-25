@@ -665,7 +665,7 @@ static Future<bool> resolveAlert(int alertId) async {
   }
 
   // Get security events
-  static Future<List<Map<String, dynamic>>> getSecurityEvents({int limit = 20}) async {
+  static Future<List<Map<String, dynamic>>> getSecurityEvents({int limit = 20, required bool acknowledged}) async {
     final client = await getClient();
     
     try {
@@ -763,25 +763,31 @@ static Future<bool> resolveAlert(int alertId) async {
   }
 
   // Acknowledge security event
-  static Future<bool> acknowledgeSecurityEvent(int eventId) async {
+  static Future<bool> acknowledgeSecurityEvent({
+  required int eventId,
+  String? userId,
+}) async {
+  final client = await getClient();
   try {
-    // Get current timestamp for the acknowledged_at field
+    print('Sending acknowledge request to Supabase for event $eventId');
+    
+    // Get current timestamp
     final now = DateTime.now().toIso8601String();
     
-    // Update the event in Supabase
+    // Update the event in the database
     await client
-        .from('alarm_events')
+        .from('security_events')
         .update({
           'acknowledged': true,
           'acknowledged_at': now,
-          'acknowledged_by_user_id': client.auth.currentUser?.id,
+          'acknowledged_by_user_id': userId,
         })
         .eq('event_id', eventId);
     
-    // If we made it here without an exception, the update was successful
+    print('Database updated successfully for event $eventId');
     return true;
   } catch (e) {
-    print('Error acknowledging event: $e');
+    print('Error in SupabaseService.acknowledgeSecurityEvent: $e');
     return false;
   }
 }

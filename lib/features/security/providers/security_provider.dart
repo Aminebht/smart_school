@@ -21,7 +21,7 @@ class SecurityProvider extends ChangeNotifier {
   List<CameraModel> _cameras = [];
 
   // Existing properties
-  List<SecurityEventModel> _events = [];
+  List<SecurityEventModel> securityEvents = [];
   List<SecurityEventModel> _recentEvents = [];
   bool _isLoading = false;
   bool _alarmSystemActive = false;
@@ -54,7 +54,7 @@ class SecurityProvider extends ChangeNotifier {
   List<SecurityDeviceModel> get doorDevices => _devices.where((d) => d.deviceType == 'door_lock').toList();
   List<SecurityDeviceModel> get windowDevices => _devices.where((d) => d.deviceType == 'window_sensor').toList();
   List<SecurityDeviceModel> get motionDevices => _devices.where((d) => d.deviceType == 'motion_sensor').toList();
-  List<SecurityEventModel> get events => _events;
+  List<SecurityEventModel> get events => securityEvents;
   List<SecurityEventModel> get recentEvents => _recentEvents;
   bool get isLoading => _isLoading;
   bool get alarmSystemActive => _alarmSystemActive;
@@ -93,8 +93,8 @@ class SecurityProvider extends ChangeNotifier {
     try {
       await Future.wait([
         loadSecurityDevices(showLoading: false),
-        loadSecurityEvents(limit: 20, showLoading: false),
-        loadRecentSecurityEvents(limit: 5, showLoading: false),
+        loadSecurityEvents(),
+        loadRecentSecurityEvents(limit: 5),
         loadAlarmSystems(showLoading: false),
         checkAlarmSystemStatus(showLoading: false),
       ]);
@@ -228,46 +228,40 @@ Future<bool> saveAlarmSystem(AlarmSystemModel alarm) async {
   }
 
   // Load security events
-  Future<void> loadSecurityEvents({int limit = 20, bool showLoading = true}) async {
-  if (showLoading) {
-    _isLoading = true;
-    notifyListeners();
-  }
+  Future<void> loadSecurityEvents({bool? acknowledged}) async {
+  _isLoading = true;
+  _errorMessage = null;
+  notifyListeners();
 
   try {
-    final eventsJson = await SupabaseService.getSecurityEvents(limit: limit);
-    _events = eventsJson.map((json) => SecurityEventModel.fromJson(json)).toList();
-
-    if (showLoading) {
-      _isLoading = false;
-      notifyListeners();
-    }
+    final eventsJson = await SupabaseService.getSecurityEvents(
+      acknowledged: acknowledged != null ? acknowledged : false,
+    );
+    
+    securityEvents = eventsJson.map((json) => SecurityEventModel.fromJson(json)).toList();
+    
+    _isLoading = false;
+    notifyListeners();
   } catch (e) {
-    _errorMessage = 'Failed to load security events: ${e.toString()}';
-    if (showLoading) {
-      _isLoading = false;
-      notifyListeners();
-    }
+    print('Error loading security events: $e');
+    _errorMessage = 'Failed to load security events';
+    _isLoading = false;
+    notifyListeners();
   }
 }
 
-  // Fix for loadRecentSecurityEvents
-Future<void> loadRecentSecurityEvents({int limit = 5, bool showLoading = true}) async {
+Future<void> loadRecentSecurityEvents({int limit = 5}) async {
   try {
-    final eventsJson = await SupabaseService.getSecurityEvents(limit: limit);
+    final eventsJson = await SupabaseService.getSecurityEvents(
+      limit: limit,
+      acknowledged: false, // Prioritize unacknowledged events
+    );
+    
     _recentEvents = eventsJson.map((json) => SecurityEventModel.fromJson(json)).toList();
-    
-    // Only notify if showLoading is true
-    if (showLoading) {
-      notifyListeners();
-    }
+    notifyListeners();
   } catch (e) {
-    _errorMessage = 'Failed to load recent events: ${e.toString()}';
-    
-    // Only notify if showLoading is true
-    if (showLoading) {
-      notifyListeners();
-    }
+    print('Error loading recent security events: $e');
+    // Don't update error message for recent events to avoid disrupting the dashboard
   }
 }
 
@@ -332,59 +326,55 @@ Future<void> loadRecentSecurityEvents({int limit = 5, bool showLoading = true}) 
   }
 
   // Acknowledge security event
-  void acknowledgeSecurityEvent(int eventId) {
+  Future<bool> acknowledgeSecurityEvent(int eventId) async {
   try {
-    _isLoading = true;
-    notifyListeners();
+    print('Attempting to acknowledge security event $eventId');
+    
+    // Get the current user ID for tracking who acknowledged it
+    final userId = await SupabaseService.getCurrentUserId();
     
     // Call Supabase service to update the database
-    SupabaseService.acknowledgeSecurityEvent(eventId).then((success) {
-      if (success) {
-        // Update the event in the local lists
-        _updateEventAcknowledgementStatus(eventId);
-        _errorMessage = null;
-      } else {
-        _errorMessage = 'Failed to acknowledge event';
-      }
-      
-      _isLoading = false;
+    final success = await SupabaseService.acknowledgeSecurityEvent(
+      eventId: eventId,
+      userId: userId?.toString(), 
+    );
+    
+    if (success) {
+      // Update the local list to reflect this change
+      _updateEventAcknowledgementStatus(eventId, true);
       notifyListeners();
-    }).catchError((e) {
-      _errorMessage = 'Failed to acknowledge event: ${e.toString()}';
-      _isLoading = false;
-      notifyListeners();
-    });
+      print('Event $eventId successfully acknowledged');
+      return true;
+    } else {
+      print('Database update failed for event $eventId');
+      return false;
+    }
   } catch (e) {
-    _errorMessage = 'Failed to acknowledge event: ${e.toString()}';
-    _isLoading = false;
-    notifyListeners();
+    print('Error acknowledging security event: $e');
+    return false;
   }
 }
 
-// Helper method to update local event data
-void _updateEventAcknowledgementStatus(int eventId) {
-  // Update in main events list
-  for (int i = 0; i < _events.length; i++) {
-    if (_events[i].eventId == eventId) {
-      _events[i] = _events[i].copyWith(
-        isAcknowledged: true,
-        acknowledgedAt: DateTime.now(),
-        acknowledgedById: SupabaseService.getCurrentUserId(),
-      );
-      break;
-    }
+// Helper method to update local state
+void _updateEventAcknowledgementStatus(int eventId, bool acknowledged) {
+  // Update in all events list
+  final index = securityEvents.indexWhere((event) => event.eventId == eventId);
+  if (index != -1) {
+    final updatedEvent = securityEvents[index].copyWith(
+      acknowledged: acknowledged,
+      acknowledgedAt: acknowledged ? DateTime.now() : null,
+    );
+    securityEvents[index] = updatedEvent;
   }
   
-  // Update in recent events list
-  for (int i = 0; i < _recentEvents.length; i++) {
-    if (_recentEvents[i].eventId == eventId) {
-      _recentEvents[i] = _recentEvents[i].copyWith(
-        isAcknowledged: true,
-        acknowledgedAt: DateTime.now(),
-        acknowledgedById: SupabaseService.getCurrentUserId(),
-      );
-      break;
-    }
+  // Also update in recent events list if present
+  final recentIndex = _recentEvents.indexWhere((event) => event.eventId == eventId);
+  if (recentIndex != -1) {
+    final updatedEvent = _recentEvents[recentIndex].copyWith(
+      acknowledged: acknowledged,
+      acknowledgedAt: acknowledged ? DateTime.now() : null,
+    );
+    _recentEvents[recentIndex] = updatedEvent;
   }
 }
 
