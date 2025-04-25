@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:smart_school/core/constants/app_constants.dart';
+import 'package:smart_school/services/camera_service.dart';
 import '../../../core/models/camera_model.dart';
-import '../../../core/services/camera_service.dart';
 import '../../camera/screens/camera_view_screen.dart';
 
 class CameraThumbnailWidget extends StatefulWidget {

@@ -466,22 +466,75 @@ class SupabaseService {
   }
   
   // Alert methods
-  static Future<List<Map<String, dynamic>>> getAlerts({int limit = 20}) async {
-    final response = await client
+  static Future<List<Map<String, dynamic>>> getAlerts({
+  int limit = 20, 
+  String? severity,
+  bool? resolved,
+}) async {
+  final client = await getClient();
+  try {
+    var query = client
         .from('alerts')
-        .select('*')
+        .select('*, devices:device_id(name, location)')
         .order('timestamp', ascending: false)
         .limit(limit);
     
-    return response;
+    if (severity != null) {
+  query = (query as PostgrestFilterBuilder).eq('severity', severity) as PostgrestTransformBuilder<PostgrestList>;
+}
+    
+    if (resolved != null) {
+      query = (query as PostgrestFilterBuilder).eq('resolved', resolved)as PostgrestTransformBuilder<PostgrestList>;
+    }
+    
+    final response = await query;
+    return List<Map<String, dynamic>>.from(response);
+  } catch (e) {
+    print('Error fetching alerts: $e');
+    throw Exception('Failed to fetch alerts');
   }
-  
-  static Stream<List<Map<String, dynamic>>> streamAlerts() {
-    return client
+}
+
+// Get recent alerts for the dashboard
+static Future<List<Map<String, dynamic>>> getRecentAlerts({int limit = 5}) async {
+  final client = await getClient();
+  try {
+    final response = await client
         .from('alerts')
-        .stream(primaryKey: ['id']);
+        .select('*, devices:device_id(name, location)')
+        .order('timestamp', ascending: false)
+        .limit(limit);
+    
+    return List<Map<String, dynamic>>.from(response);
+  } catch (e) {
+    print('Error fetching recent alerts: $e');
+    throw Exception('Failed to fetch recent alerts');
   }
-  
+}
+
+// Mark an alert as resolved
+static Future<bool> resolveAlert(int alertId) async {
+  final client = await getClient();
+  try {
+    // Get current timestamp for the resolved_at field
+    final now = DateTime.now().toIso8601String();
+    
+    await client
+        .from('alerts')
+        .update({
+          'resolved': true,
+          'resolved_at': now,
+          'resolved_by_user_id': client.auth.currentUser?.id,
+        })
+        .eq('alert_id', alertId);
+    
+    return true;
+  } catch (e) {
+    print('Error resolving alert: $e');
+    return false;
+  }
+}
+
   // Camera feed URL
   static String getCameraFeedUrl(String cameraId) {
     return '$supabaseUrl/edge/v1/camera-stream?camera_id=$cameraId';

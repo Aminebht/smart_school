@@ -78,7 +78,7 @@ class CameraProvider extends ChangeNotifier {
       _camera = {
         'id': cameraId,
         'name': 'Camera $cameraId',
-        'streamUrl': 'https://mystream.loca.lt',
+        'streamUrl': 'http://192.168.0.22:3000/stream',
         'isActive': true,
       };
       _isLoading = false;

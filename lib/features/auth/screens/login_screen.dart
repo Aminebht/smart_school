@@ -166,6 +166,24 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 16),
+
+                    // Sign up link
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Don\'t have an account?',
+                          style: TextStyle(color: Colors.grey[600]),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pushNamed(context, AppRoutes.signup);
+                          },
+                          child: const Text('Sign Up'),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 32),
 
                     // Login button
@@ -184,4 +202,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
-} 
+}

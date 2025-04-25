@@ -1,5 +1,6 @@
+// lib/core/models/alert_model.dart
+
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
 
 class AlertModel {
   final int alertId;
@@ -10,8 +11,67 @@ class AlertModel {
   final DateTime timestamp;
   final bool resolved;
   final DateTime? resolvedAt;
-  final int? resolvedByUserId;
-  
+  final int? resolvedById;
+  final String? deviceName;
+  final String? deviceLocation;
+
+  // Calculate these properties based on existing fields
+  Color get severityColor {
+    switch (severity.toLowerCase()) {
+      case 'critical':
+        return Colors.red;
+      case 'warning':
+        return Colors.orange;
+      case 'info':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData get alertIcon {
+    switch (alertType.toLowerCase()) {
+      case 'security':
+        return Icons.security;
+      case 'motion':
+        return Icons.directions_run;
+      case 'temperature':
+        return Icons.thermostat;
+      case 'smoke':
+        return Icons.smoke_free;
+      case 'water':
+        return Icons.water_drop;
+      case 'network':
+        return Icons.wifi;
+      case 'battery':
+        return Icons.battery_alert;
+      case 'error':
+        return Icons.error;
+      default:
+        switch (severity.toLowerCase()) {
+          case 'critical':
+            return Icons.error;
+          case 'warning':
+            return Icons.warning;
+          default:
+            return Icons.info;
+        }
+    }
+  }
+
+  // Add title getter for consistency with your current code
+  String get title {
+    // Convert alertType to a more readable format
+    final formattedType = alertType
+        .split('_')
+        .map((word) => word.isNotEmpty 
+            ? '${word[0].toUpperCase()}${word.substring(1)}' 
+            : '')
+        .join(' ');
+    
+    return '$formattedType Alert';
+  }
+
   AlertModel({
     required this.alertId,
     required this.deviceId,
@@ -21,9 +81,11 @@ class AlertModel {
     required this.timestamp,
     required this.resolved,
     this.resolvedAt,
-    this.resolvedByUserId,
+    this.resolvedById,
+    this.deviceName,
+    this.deviceLocation,
   });
-  
+
   factory AlertModel.fromJson(Map<String, dynamic> json) {
     return AlertModel(
       alertId: json['alert_id'],
@@ -31,74 +93,16 @@ class AlertModel {
       alertType: json['alert_type'],
       severity: json['severity'],
       message: json['message'],
-      timestamp: DateTime.parse(json['timestamp']),
+      timestamp: json['timestamp'] != null 
+          ? DateTime.parse(json['timestamp']) 
+          : DateTime.now(),
       resolved: json['resolved'] ?? false,
       resolvedAt: json['resolved_at'] != null 
           ? DateTime.parse(json['resolved_at']) 
           : null,
-      resolvedByUserId: json['resolved_by_user_id'],
+      resolvedById: json['resolved_by_user_id'],
+      deviceName: json['device_name'],
+      deviceLocation: json['device_location'],
     );
-  }
-  
-  // Get color based on severity
-  Color get severityColor {
-    switch (severity.toLowerCase()) {
-      case 'critical':
-        return Colors.red;
-      case 'warning':
-        return Colors.orange;
-      case 'info':
-      default:
-        return Colors.blue;
-    }
-  }
-  
-  // Get icon based on alert type
-  IconData get alertIcon {
-    switch (alertType.toLowerCase()) {
-      case 'temperature':
-        return Icons.thermostat;
-      case 'humidity':
-        return Icons.water_drop;
-      case 'motion':
-        return Icons.motion_photos_on;
-      case 'door':
-        return Icons.door_front_door;
-      case 'gas':
-        return Icons.air;
-      case 'smoke':
-        return Icons.cloud;
-      case 'security':
-        return Icons.security;
-      case 'maintenance':
-        return Icons.build;
-      case 'system':
-        return Icons.computer;
-      default:
-        return Icons.warning;
-    }
-  }
-  
-  // Create a title from alert type and severity
-  String get title {
-    final formattedType = alertType.split('_')
-      .map((word) => '${word[0].toUpperCase()}${word.substring(1).toLowerCase()}')
-      .join(' ');
-    
-    return '$formattedType ${severity.toLowerCase() == 'info' ? 'Notification' : 'Alert'}';
-  }
-  
-  Map<String, dynamic> toJson() {
-    return {
-      'alert_id': alertId,
-      'device_id': deviceId,
-      'alert_type': alertType,
-      'severity': severity,
-      'message': message,
-      'timestamp': timestamp.toIso8601String(),
-      'resolved': resolved,
-      'resolved_at': resolvedAt?.toIso8601String(),
-      'resolved_by_user_id': resolvedByUserId,
-    };
   }
 }

@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_school/core/models/alarm_system_model.dart';
 import 'package:smart_school/core/models/camera_model.dart';
+import 'package:smart_school/features/alerts/screens/alerts_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/app_constants.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/reset_password_screen.dart';
+import 'features/auth/screens/signup_screen.dart'; // Add this import at the top
 import 'features/auth/screens/splash_screen.dart';
 import 'features/dashboard/providers/dashboard_provider.dart';
 import 'features/dashboard/screens/dashboard_screen.dart';
@@ -98,6 +100,7 @@ class SmartSchoolApp extends StatelessWidget {
           AppRoutes.splash: (context) => const SplashScreen(),
           AppRoutes.login: (context) => const LoginScreen(),
           AppRoutes.resetPassword: (context) => const ResetPasswordScreen(),
+          AppRoutes.signup: (context) => const SignUpScreen(), // Add this line
           
           // Update dashboard to use the container
           AppRoutes.dashboard: (context) => const BottomNavContainer(initialIndex: 0),
@@ -108,6 +111,7 @@ class SmartSchoolApp extends StatelessWidget {
           // Keep other specific screen routes unchanged
           AppRoutes.securityEvents: (context) => const SecurityEventsScreen(),
           AppRoutes.alarmSystems: (context) => const AlarmSystemsScreen(),
+          AppRoutes.alerts: (context) => const AlertsScreen(),
           // Add other routes as they are developed
         },
         onGenerateRoute: (settings) {

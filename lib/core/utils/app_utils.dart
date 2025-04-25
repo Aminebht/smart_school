@@ -5,8 +5,20 @@ import '../constants/app_constants.dart';
 
 // Format date and time
 String formatDateTime(DateTime dateTime) {
-  final DateFormat formatter = DateFormat('MMM dd, yyyy HH:mm');
-  return formatter.format(dateTime);
+  final now = DateTime.now();
+  final difference = now.difference(dateTime);
+  
+  if (difference.inSeconds < 60) {
+    return 'Just now';
+  } else if (difference.inMinutes < 60) {
+    return '${difference.inMinutes}m ago';
+  } else if (difference.inHours < 24) {
+    return '${difference.inHours}h ago';
+  } else if (difference.inDays < 7) {
+    return '${difference.inDays}d ago';
+  } else {
+    return '${dateTime.month}/${dateTime.day}/${dateTime.year}';
+  }
 }
 
 // Format date only
@@ -68,4 +80,4 @@ void showLoadingDialog(BuildContext context) {
 // Parse sensor reading value with proper formatting
 String formatSensorReading(double value, String unit) {
   return '${value.toStringAsFixed(1)} $unit';
-} 
+}

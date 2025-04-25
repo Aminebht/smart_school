@@ -34,9 +34,11 @@ enum DeviceStatus {
 
 // Routes
 class AppRoutes {
+  // Existing routes
   static const splash = '/';
   static const login = '/login';
   static const resetPassword = '/reset_password';
+  static const signup = '/signup'; // Add this line
   static const dashboard = '/dashboard';
   static const department = '/department';
   static const classroom = '/classroom';
@@ -53,8 +55,10 @@ class AppRoutes {
   static const alarmRules = '/alarm_rules';
   static const alarmActions = '/alarm_actions';
   static const alarmEvents = '/alarm_events';
-   static const int dashboardIndex = 0;
+  static const alerts = '/alerts';
+  static const int dashboardIndex = 0;
   static const int departmentIndex = 1;
   static const int securityIndex = 2;
   static const int settingsIndex = 3; 
+  
 }

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'package:http/http.dart' as http;
 import '../../../core/models/camera_model.dart';
-import '../../../core/services/camera_service.dart';
 import '../../../services/supabase_service.dart';
 
 class CameraViewScreen extends StatefulWidget {

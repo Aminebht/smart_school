@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_school/features/alerts/providers/alerts_provider.dart';
 import '../../../core/models/department_model.dart';
 import '../../../core/models/sensor_reading_model.dart';
 import '../../../core/models/alert_model.dart';
@@ -22,26 +24,36 @@ class DashboardProvider extends ChangeNotifier {
     loadDashboardData();
   }
 
-  Future<void> loadDashboardData() async {
+  Future<void> loadDashboardData([BuildContext? context]) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // Load departments
+      // Load existing data...
       await loadDepartments();
-      
-      // Load recent alerts
-      await loadRecentAlerts();
-      
-      // Calculate quick stats
       await calculateQuickStats();
+      
+      // Load alerts data only if context is provided
+      if (context != null) {
+        try {
+          final alertsProvider = Provider.of<AlertsProvider>(
+            context, 
+            listen: false
+          );
+          await alertsProvider.loadRecentAlerts();
+          _recentAlerts = alertsProvider.recentAlerts;
+        } catch (e) {
+          print('Could not load alerts: $e');
+          // Continue execution even if alerts loading fails
+        }
+      }
       
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _isLoading = false;
       _errorMessage = 'Failed to load dashboard data: ${e.toString()}';
+      _isLoading = false;
       notifyListeners();
     }
   }
@@ -52,16 +64,6 @@ class DashboardProvider extends ChangeNotifier {
       _departments = departmentsJson.map((json) => DepartmentModel.fromJson(json)).toList();
     } catch (e) {
       _errorMessage = 'Failed to load departments: ${e.toString()}';
-      throw e;
-    }
-  }
-
-  Future<void> loadRecentAlerts() async {
-    try {
-      final alertsJson = await SupabaseService.getAlerts(limit: 5);
-      _recentAlerts = alertsJson.map((json) => AlertModel.fromJson(json)).toList();
-    } catch (e) {
-      _errorMessage = 'Failed to load alerts: ${e.toString()}';
       throw e;
     }
   }

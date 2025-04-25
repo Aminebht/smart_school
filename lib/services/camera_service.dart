@@ -1,6 +1,7 @@
+import 'package:smart_school/core/models/camera_model.dart';
+import 'package:smart_school/core/utils/logger.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/camera_model.dart';
-import '../utils/logger.dart';
+
 import '../../services/supabase_service.dart';
 
 class CameraService {
@@ -60,7 +61,7 @@ class CameraService {
   CameraModel _createMockCamera(int classroomId) {
     return CameraModel(
       cameraId: -1,  // Negative ID to indicate mock
-      streamUrl: 'https://mystream.loca.lt', // Public test video
+      streamUrl: 'http://192.168.0.22:3000/stream', // Public test video
       motionDetectionEnabled: true,
       name: "Test Camera",
       description: "Mock camera for testing",

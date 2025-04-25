@@ -338,4 +338,85 @@ class AuthProvider extends ChangeNotifier {
       // Don't throw here, we already updated Auth metadata
     }
   }
+
+  Future<bool> signUp({
+    required String name,
+    required String email,
+    required String password,
+    required String role,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      print("Starting signup process for: $email");
+      
+      // Check connection first
+      var connectivityResult = await Connectivity().checkConnectivity();
+      if (connectivityResult == ConnectivityResult.none) {
+        throw SocketException('No internet connection available.');
+      }
+      
+      print("About to call Supabase signUp");
+      // Register the user using Supabase Auth
+      final response = await SupabaseService.client.auth.signUp(
+        email: email.trim(), // ⬅️ Make sure to trim the email
+        password: password,
+        data: {
+          'name': name,
+          'role': role
+        },
+      );
+      
+      print("SignUp response received: ${response.user != null ? 'User created' : 'No user in response'}");
+      
+      if (response.user != null) {
+        // Create a user record in your 'users' table
+        await SupabaseService.client.from('users').upsert({
+          'user_id': response.user!.id,
+          'email': email,
+          'name': name,
+          'role': role,
+          'created_at': DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+        
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      } else {
+        // The response.user is null but we might not have an error - this is a sign-up
+        // so the user may need to confirm their email
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } on AuthException catch (e) {
+      _isLoading = false;
+      
+      // More user-friendly error messages
+      if (e.message.contains("invalid") && e.message.contains("email")) {
+        _errorMessage = 'Please use a different email address. This one cannot be used.';
+      } else if (e.message.contains("already in use") || e.message.contains("exists")) {
+        _errorMessage = 'An account with this email already exists. Please sign in instead.';
+      } else {
+        _errorMessage = 'Authentication error: ${e.message}';
+      }
+      
+      notifyListeners();
+      return false;
+    } on SocketException catch (e) {
+      _isLoading = false;
+      _isOffline = true;
+      _errorMessage = 'Network error: Please check your internet connection';
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Sign up failed: ${e.toString()}';
+      notifyListeners();
+      return false;
+    }
+  }
 }

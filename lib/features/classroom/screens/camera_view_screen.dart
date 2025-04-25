@@ -22,7 +22,7 @@ class CameraViewScreen extends StatefulWidget {
 }
 
 class _CameraViewScreenState extends State<CameraViewScreen> {
-  final TextEditingController _urlController = TextEditingController(text: 'wss://mystream.loca.lt');
+  final TextEditingController _urlController = TextEditingController(text: 'http://192.168.0.22:3000/stream');
   bool _showDebugPanel = false;
   IOWebSocketChannel? _channel;
   Uint8List? _imageBytes;
@@ -177,7 +177,7 @@ class _CameraViewScreenState extends State<CameraViewScreen> {
     });
 
     // HTTP fallback URL (using HTTP instead of WebSocket)
-    final httpUrl = 'https://mystream.loca.lt/stream';
+    final httpUrl = 'http://192.168.0.22:3000/stream';
 
     // Just for testing if the server exists and responds
     try {
@@ -251,7 +251,7 @@ class _CameraViewScreenState extends State<CameraViewScreen> {
           // Connect to stream when camera info is loaded
           if (_channel == null) {
             // Always use the predefined URL with WebSocket protocol
-            const streamUrl = 'wss://mystream.loca.lt';
+            const streamUrl = 'http://192.168.0.22:3000/stream';
             // Using Future.microtask to avoid setState during build
             Future.microtask(() => _connectToStream(streamUrl));
           }
@@ -359,7 +359,7 @@ class _CameraViewScreenState extends State<CameraViewScreen> {
                             context,
                             Icons.refresh,
                             'Reconnect',
-                            () => _connectToStream('wss://mystream.loca.lt'),
+                            () => _connectToStream('http://192.168.0.22:3000/stream'),
                           ),
                           _buildControlButton(
                             context,
@@ -520,12 +520,12 @@ class _CameraViewScreenState extends State<CameraViewScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             ElevatedButton(
-              onPressed: () => _connectToStream('wss://mystream.loca.lt'),
+              onPressed: () => _connectToStream('http://192.168.0.22:3000/stream'),
               child: const Text('Try WSS'),
             ),
             const SizedBox(width: 8),
             ElevatedButton(
-              onPressed: () => _connectToStream('ws://mystream.loca.lt'),
+              onPressed: () => _connectToStream('http://192.168.0.22:3000/stream'),
               child: const Text('Try WS'),
             ),
           ],
@@ -622,7 +622,7 @@ class CameraProvider extends ChangeNotifier {
       _camera = CameraModel(
         cameraId: cameraId,
         name: 'Camera $cameraId',
-        streamUrl: 'https://mystream.loca.lt',
+        streamUrl: 'http://192.168.0.22:3000/stream',
         motionDetectionEnabled: false,
         description: '',
         isRecording: false,

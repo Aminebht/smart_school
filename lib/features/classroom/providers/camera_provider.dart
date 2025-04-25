@@ -37,7 +37,7 @@ class CameraProvider extends ChangeNotifier {
       _camera = CameraModel(
         cameraId: cameraId,
         name: 'Camera $cameraId',
-        streamUrl: 'wss://mystream.loca.lt',
+        streamUrl: 'http://192.168.0.22:3000/stream',
         isActive: true,
         description: 'Classroom camera',
         motionDetectionEnabled: true,

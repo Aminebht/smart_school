@@ -20,6 +20,15 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<DashboardProvider>(context, listen: false)
+          .loadDashboardData(context);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final user = authProvider.user;
@@ -134,7 +143,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     RecentAlerts(
                       alerts: dashboardProvider.recentAlerts,
                       onViewAllTap: () {
-                        // TODO: Navigate to alerts or security screen
+                        // Navigate to the dedicated alerts screen
+                        Navigator.pushNamed(context, AppRoutes.alerts);
                       },
                     ),
                     
