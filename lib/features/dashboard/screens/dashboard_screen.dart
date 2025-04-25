@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_school/features/department/screens/department_detail_screen.dart';
+import 'package:smart_school/features/navigation/screens/bottom_nav_container.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/custom_button.dart';
 import '../../../core/utils/app_utils.dart';
@@ -70,7 +71,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       child: InkWell(
                         onTap: () {
-                          Navigator.pushNamed(context, AppRoutes.security);
+                          Navigator.pushReplacement(
+                          context, 
+                          MaterialPageRoute(
+                            builder: (context) => const BottomNavContainer(initialIndex: AppRoutes.securityIndex),
+                          ),
+                        );
                         },
                         child: Padding(
                           padding: const EdgeInsets.all(16),

@@ -53,4 +53,7 @@ class AppRoutes {
   static const alarmRules = '/alarm_rules';
   static const alarmActions = '/alarm_actions';
   static const alarmEvents = '/alarm_events';
+   static const int dashboardIndex = 0;
+  static const int departmentIndex = 1;
+  static const int securityIndex = 2;
 }

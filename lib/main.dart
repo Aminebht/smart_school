@@ -23,6 +23,7 @@ import 'features/security/screens/alarm_events_screen.dart';
 import 'features/security/screens/alarm_rules_screen.dart';
 import 'features/security/screens/alarm_detail_screen.dart';
 import 'services/supabase_service.dart';
+import 'features/navigation/screens/bottom_nav_container.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -97,9 +98,14 @@ class SmartSchoolApp extends StatelessWidget {
           AppRoutes.splash: (context) => const SplashScreen(),
           AppRoutes.login: (context) => const LoginScreen(),
           AppRoutes.resetPassword: (context) => const ResetPasswordScreen(),
-          AppRoutes.dashboard: (context) => const DashboardScreen(),
-          AppRoutes.department: (context) => const DepartmentListScreen(),
-          AppRoutes.security: (context) => const SecurityDashboardScreen(),
+          
+          // Update dashboard to use the container
+          AppRoutes.dashboard: (context) => const BottomNavContainer(initialIndex: 0),
+          // Keep these as alternatives for deep linking
+          AppRoutes.department: (context) => const BottomNavContainer(initialIndex: 1),
+          AppRoutes.security: (context) => const BottomNavContainer(initialIndex: 2),
+          
+          // Keep other specific screen routes unchanged
           AppRoutes.securityEvents: (context) => const SecurityEventsScreen(),
           AppRoutes.alarmSystems: (context) => const AlarmSystemsScreen(),
           // Add other routes as they are developed
