@@ -22,78 +22,63 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    // Use addPostFrameCallback to load data after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<DashboardProvider>(context, listen: false)
-          .loadDashboardData(context);
+      final provider = Provider.of<DashboardProvider>(context, listen: false);
+      provider.loadDashboardData();
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final user = authProvider.user;
-    
-    return ChangeNotifierProvider(
-      create: (_) => DashboardProvider(),
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          title: const Text('Dashboard'),
-          centerTitle: true,
-        ),
-        body: Consumer<DashboardProvider>(
-          builder: (context, dashboardProvider, _) {
-            if (dashboardProvider.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            
-            if (dashboardProvider.errorMessage != null) {
-              return _buildErrorView(context, dashboardProvider);
-            }
-            
-            return RefreshIndicator(
-              onRefresh: () => dashboardProvider.loadDashboardData(),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // School info header
-                    _buildHeader(user),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Quick stats
-                    StatsCardGrid(stats: dashboardProvider.quickStats),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Departments section
-                    _buildDepartmentsSection(dashboardProvider),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Recent alerts
-                    RecentAlerts(
-                      alerts: dashboardProvider.recentAlerts,
-                      onViewAllTap: () {
-                        // Navigate to the dedicated alerts screen
-                        Navigator.pushNamed(context, AppRoutes.alerts);
-                      },
-                    ),
-                    
-                    const SizedBox(height: 24),
-                  ],
-                ),
+    return Scaffold(
+      body: Consumer<DashboardProvider>(
+        builder: (context, dashboardProvider, _) {
+          return RefreshIndicator(
+            onRefresh: () => dashboardProvider.loadDashboardData(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // School info header
+                  _buildHeader(),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Quick stats
+                  StatsCardGrid(stats: dashboardProvider.quickStats),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Departments section
+                  _buildDepartmentsSection(dashboardProvider),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Recent alerts
+                  RecentAlerts(
+                    alerts: dashboardProvider.recentAlerts,
+                    onViewAllTap: () {
+                      // Navigate to the dedicated alerts screen
+                      Navigator.pushNamed(context, AppRoutes.alerts);
+                    },
+                  ),
+                  
+                  const SizedBox(height: 24),
+                ],
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildHeader(user) {
+  Widget _buildHeader() {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final user = authProvider.user;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(

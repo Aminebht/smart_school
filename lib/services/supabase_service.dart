@@ -473,42 +473,68 @@ class SupabaseService {
 }) async {
   final client = await getClient();
   try {
-    var query = client
-        .from('alerts')
-        .select('*, devices:device_id(name, location)')
+    // IMPORTANT: Use double quotes for table and column names in foreign key relationship
+    String query = '*';
+    
+    // Check if devices table exists before adding the join
+    try {
+      // First check if the table exists and has the needed columns
+      await client.from('devices').select('model').limit(1);
+      // If no error, add the join
+      query = '*,devices:device_id(model,location)';
+    } catch (e) {
+      print('Warning: devices table might be missing, proceeding without join: $e');
+      // Just continue with basic query
+    }
+    
+    // Start with the base query
+    var baseQuery = client.from('alerts').select(query);
+    
+    // Apply filters
+    if (severity != null) {
+      baseQuery = baseQuery.eq('severity', severity);
+    }
+    
+    if (resolved != null) {
+      baseQuery = baseQuery.eq('resolved', resolved);
+    }
+    
+    // Apply ordering and limit
+    final data = await baseQuery
         .order('timestamp', ascending: false)
         .limit(limit);
     
-    if (severity != null) {
-  query = (query as PostgrestFilterBuilder).eq('severity', severity) as PostgrestTransformBuilder<PostgrestList>;
-}
-    
-    if (resolved != null) {
-      query = (query as PostgrestFilterBuilder).eq('resolved', resolved)as PostgrestTransformBuilder<PostgrestList>;
-    }
-    
-    final response = await query;
-    return List<Map<String, dynamic>>.from(response);
+    return List<Map<String, dynamic>>.from(data);
   } catch (e) {
     print('Error fetching alerts: $e');
-    throw Exception('Failed to fetch alerts');
+    throw Exception('Failed to fetch alerts: $e');
   }
 }
 
-// Get recent alerts for the dashboard
 static Future<List<Map<String, dynamic>>> getRecentAlerts({int limit = 5}) async {
   final client = await getClient();
   try {
-    final response = await client
+    String query = '*';
+    
+    // Check if devices table exists before adding the join
+    try {
+      await client.from('devices').select('model').limit(1);
+      query = '*,devices:device_id(model,location)';
+    } catch (e) {
+      print('Warning: devices table might be missing, proceeding without join');
+    }
+    
+    // Use the modified query
+    final data = await client
         .from('alerts')
-        .select('*, devices:device_id(name, location)')
+        .select(query)
         .order('timestamp', ascending: false)
         .limit(limit);
     
-    return List<Map<String, dynamic>>.from(response);
+    return List<Map<String, dynamic>>.from(data);
   } catch (e) {
     print('Error fetching recent alerts: $e');
-    throw Exception('Failed to fetch recent alerts');
+    throw Exception('Failed to fetch recent alerts: $e');
   }
 }
 

@@ -15,54 +15,47 @@ class RecentAlerts extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Section header
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Recent Alerts',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text,
+    return Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Recent Alerts',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              TextButton(
-                onPressed: onViewAllTap,
-                child: const Text('View All'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        
-        // Alert list
-        if (alerts.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Center(
-              child: Text(
-                'No recent alerts',
-                style: TextStyle(color: AppColors.textSecondary),
-              ),
+                TextButton(
+                  onPressed: onViewAllTap,
+                  child: const Text('View All'),
+                ),
+              ],
             ),
-          )
-        else
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: alerts.length,
-            padding: EdgeInsets.zero,
-            itemBuilder: (context, index) {
-              return AlertListItem(alert: alerts[index]);
-            },
-          ),
-      ],
+            const SizedBox(height: 8),
+            // Check if alerts list is empty
+            if (alerts.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Text(
+                    'No recent alerts',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            else
+              Column(
+                children: alerts
+                    .map((alert) => AlertListItem(alert: alert))
+                    .toList(),
+              ),
+          ],
+        ),
     );
   }
 }
@@ -142,4 +135,4 @@ class AlertListItem extends StatelessWidget {
       ),
     );
   }
-} 
+}

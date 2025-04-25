@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_school/core/models/alarm_system_model.dart';
 import 'package:smart_school/core/models/camera_model.dart';
+import 'package:smart_school/features/alerts/providers/alerts_provider.dart';
 import 'package:smart_school/features/alerts/screens/alerts_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/app_constants.dart';
@@ -49,10 +50,11 @@ class SmartSchoolApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider.value(value: authProvider),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => SecurityProvider()),
-        // Add other providers here
+        ChangeNotifierProvider(create: (_) => AlertsProvider()), // Make sure this is here
+        // Other providers...
       ],
       child: MaterialApp(
         title: 'Smart School',

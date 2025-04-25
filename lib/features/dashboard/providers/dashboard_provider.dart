@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_school/features/alerts/providers/alerts_provider.dart';
@@ -24,30 +26,18 @@ class DashboardProvider extends ChangeNotifier {
     loadDashboardData();
   }
 
-  Future<void> loadDashboardData([BuildContext? context]) async {
+  Future<void> loadDashboardData() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // Load existing data...
+      // Load existing data
       await loadDepartments();
       await calculateQuickStats();
       
-      // Load alerts data only if context is provided
-      if (context != null) {
-        try {
-          final alertsProvider = Provider.of<AlertsProvider>(
-            context, 
-            listen: false
-          );
-          await alertsProvider.loadRecentAlerts();
-          _recentAlerts = alertsProvider.recentAlerts;
-        } catch (e) {
-          print('Could not load alerts: $e');
-          // Continue execution even if alerts loading fails
-        }
-      }
+      // Load alerts directly here
+      await loadRecentAlerts();
       
       _isLoading = false;
       notifyListeners();
@@ -139,5 +129,38 @@ class DashboardProvider extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  // Add a specific method to load alerts
+  Future<void> loadRecentAlerts() async {
+    try {
+      // Load recent alerts directly via SupabaseService
+      final alertsJson = await SupabaseService.getRecentAlerts(limit: 5);
+      
+      // Map the JSON to AlertModel objects
+      _recentAlerts = alertsJson.map((json) {
+        // Process device data
+        final Map<String, dynamic> alertData = {...json};
+        
+        // Handle devices data correctly
+        if (json['devices'] != null) {
+          alertData['device_name'] = json['devices']['model'];
+          alertData['device_location'] = json['devices']['location'];
+        }
+        
+        // Print the data to debug
+        print('Processing alert data: ${alertData['alert_id']}');
+        
+        return AlertModel.fromJson(alertData);
+      }).toList();
+      
+      print('Recent alerts loaded: ${_recentAlerts.length}');
+      _recentAlerts.forEach((alert) {
+        print('Alert: ${alert.alertId}, ${alert.alertType}, ${alert.message.substring(0, min(20, alert.message.length))}...');
+      });
+    } catch (e) {
+      print('Error loading recent alerts in dashboard: $e');
+      // Don't rethrow, we want the dashboard to continue loading
+    }
   }
 }

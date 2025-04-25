@@ -39,15 +39,16 @@ class AlertsProvider extends ChangeNotifier {
       );
       
       _alerts = alertsJson.map((json) {
-        // Extract device info from the nested object
-        final deviceInfo = json['devices'] ?? {};
-        
-        // Merge all data into a single map for the model
+        // Create alert data structure for model
         final Map<String, dynamic> alertData = {
           ...json,
-          'device_name': deviceInfo['name'],
-          'device_location': deviceInfo['location'],
         };
+        
+        // Handle devices data - it will be a nested object, not a column
+        if (json['devices'] != null) {
+          alertData['device_name'] = json['devices']['name'];
+          alertData['device_location'] = json['devices']['location'];
+        }
         
         return AlertModel.fromJson(alertData);
       }).toList();
@@ -59,10 +60,13 @@ class AlertsProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
     } catch (e) {
+      print('Failed to load alerts: $e');
       _errorMessage = 'Failed to load alerts: ${e.toString()}';
+      
       if (showLoading) {
         _isLoading = false;
       }
+      
       notifyListeners();
     }
   }
@@ -78,12 +82,17 @@ class AlertsProvider extends ChangeNotifier {
       final alertsJson = await SupabaseService.getRecentAlerts(limit: limit);
       
       _recentAlerts = alertsJson.map((json) {
-        final deviceInfo = json['devices'] ?? {};
-        return AlertModel.fromJson({
+        final Map<String, dynamic> alertData = {
           ...json,
-          'device_name': deviceInfo['name'],
-          'device_location': deviceInfo['location'],
-        });
+        };
+        
+        // Handle devices data correctly
+        if (json['devices'] != null) {
+          alertData['device_name'] = json['devices']['name'];
+          alertData['device_location'] = json['devices']['location'];
+        }
+        
+        return AlertModel.fromJson(alertData);
       }).toList();
 
       if (showLoading) {

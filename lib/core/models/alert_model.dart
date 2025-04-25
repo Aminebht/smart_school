@@ -15,7 +15,21 @@ class AlertModel {
   final String? deviceName;
   final String? deviceLocation;
 
-  // Calculate these properties based on existing fields
+  AlertModel({
+    required this.alertId,
+    required this.deviceId,
+    required this.alertType,
+    required this.severity,
+    required this.message,
+    required this.timestamp,
+    required this.resolved,
+    this.resolvedAt,
+    this.resolvedById,
+    this.deviceName,
+    this.deviceLocation,
+  });
+
+  // Define these getters to fix the errors
   Color get severityColor {
     switch (severity.toLowerCase()) {
       case 'critical':
@@ -45,9 +59,8 @@ class AlertModel {
         return Icons.wifi;
       case 'battery':
         return Icons.battery_alert;
-      case 'error':
-        return Icons.error;
       default:
+        // Default icon based on severity
         switch (severity.toLowerCase()) {
           case 'critical':
             return Icons.error;
@@ -58,51 +71,29 @@ class AlertModel {
         }
     }
   }
-
-  // Add title getter for consistency with your current code
+  
+  // Add title getter for compatibility with RecentAlerts widget
   String get title {
-    // Convert alertType to a more readable format
-    final formattedType = alertType
-        .split('_')
-        .map((word) => word.isNotEmpty 
-            ? '${word[0].toUpperCase()}${word.substring(1)}' 
-            : '')
-        .join(' ');
-    
-    return '$formattedType Alert';
+    return alertType;
   }
-
-  AlertModel({
-    required this.alertId,
-    required this.deviceId,
-    required this.alertType,
-    required this.severity,
-    required this.message,
-    required this.timestamp,
-    required this.resolved,
-    this.resolvedAt,
-    this.resolvedById,
-    this.deviceName,
-    this.deviceLocation,
-  });
 
   factory AlertModel.fromJson(Map<String, dynamic> json) {
-    return AlertModel(
-      alertId: json['alert_id'],
-      deviceId: json['device_id'],
-      alertType: json['alert_type'],
-      severity: json['severity'],
-      message: json['message'],
-      timestamp: json['timestamp'] != null 
-          ? DateTime.parse(json['timestamp']) 
-          : DateTime.now(),
-      resolved: json['resolved'] ?? false,
-      resolvedAt: json['resolved_at'] != null 
-          ? DateTime.parse(json['resolved_at']) 
-          : null,
-      resolvedById: json['resolved_by_user_id'],
-      deviceName: json['device_name'],
-      deviceLocation: json['device_location'],
-    );
-  }
+  return AlertModel(
+    alertId: json['alert_id'],
+    deviceId: json['device_id'],
+    alertType: json['alert_type'] ?? 'unknown',
+    severity: json['severity'] ?? 'info',
+    message: json['message'] ?? 'No details available',
+    timestamp: json['timestamp'] != null 
+        ? DateTime.parse(json['timestamp']) 
+        : DateTime.now(),
+    resolved: json['resolved'] ?? false,
+    resolvedAt: json['resolved_at'] != null 
+        ? DateTime.parse(json['resolved_at']) 
+        : null,
+    resolvedById: json['resolved_by_user_id'],
+    deviceName: json['device_name'] ?? json['devices']?['model'] ?? 'Unknown Device',
+    deviceLocation: json['device_location'] ?? json['devices']?['location'] ?? 'Unknown Location',
+  );
+}
 }
