@@ -52,29 +52,14 @@ class DepartmentCard extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                         color: AppColors.text,
                       ),
-                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
               
               // Floor and classrooms info
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _buildInfoItem(
-                    Icons.layers,
-                    'Floor ${department.floorNumber}',
-                  ),
-                  _buildInfoItem(
-                    Icons.meeting_room,
-                    'Rooms',
-                  ),
-                ],
-              ),
-              
+          
               const SizedBox(height: 16),
               
               // Status text

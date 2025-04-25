@@ -76,11 +76,7 @@ class _DepartmentDetailScreenState extends State<DepartmentDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Department info header
-                    _buildDepartmentHeader(department),
-                    
                     const SizedBox(height: 16),
-                    
                     // Classrooms section
                     _buildClassroomsSection(provider),
                     
@@ -103,38 +99,12 @@ class _DepartmentDetailScreenState extends State<DepartmentDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Department name and status
-          Row(
-            children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: getStatusColor(department.status),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                department.name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
+        
           
           // Department info
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildInfoCard(
-                'Floor',
-                department.floorNumber.toString(),
-                Icons.layers,
-              ),
               _buildInfoCard(
                 'Status',
                 _getStatusText(department.status),
@@ -234,18 +204,20 @@ class _DepartmentDetailScreenState extends State<DepartmentDetailScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: rowClassrooms.map((classroom) {
-                  return SizedBox(
-                    width: MediaQuery.of(context).size.width / 3 - 16,
-                    child: ClassroomCard(
-                      classroom: classroom,
-                      onTap: () {
-                        // Navigate to classroom detail
-                        Navigator.pushNamed(
-                          context,
-                          AppRoutes.classroom,
-                          arguments: classroom.classroomId.toString(),
-                        );
-                      },
+                  return Expanded(
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      child: ClassroomCard(
+                        classroom: classroom,
+                        onTap: () {
+                          // Navigate to classroom detail
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.classroom,
+                            arguments: classroom.classroomId.toString(),
+                          );
+                        },
+                      ),
                     ),
                   );
                 }).toList(),

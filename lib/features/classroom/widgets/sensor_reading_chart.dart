@@ -433,15 +433,15 @@ class SensorReadingChart extends StatelessWidget {
   double _getMaxY() {
     switch (sensorType) {
       case 'temperature':
-        return 35;
+        return 50;
       case 'humidity':
         return 100;
       case 'gas':
-        return 1200;
+        return 1500;
       case 'motion':
         return 1;
       case 'light':
-        return 1000;
+        return 1500;
       default:
         return 100;
     }
