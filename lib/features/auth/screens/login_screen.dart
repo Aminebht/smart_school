@@ -57,11 +57,15 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Logo and title
-                    const Icon(
-                      Icons.school,
-                      size: 64,
-                      color: AppColors.primary,
-                    ),
+                    ClipRRect(
+                          borderRadius: BorderRadius.circular(20.0),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
                     const SizedBox(height: 16),
                     const Text(
                       'FST',
@@ -78,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 18,
-                        color: AppColors.secondary,
+                        color: AppColors.primary,
                       ),
                     ),
                     const SizedBox(height: 48),

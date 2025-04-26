@@ -79,14 +79,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 Center(
                   child: Column(
                     children: [
-                      const Icon(
-                        Icons.school,
-                        color: AppColors.primary,
-                        size: 64,
-                      ),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(5.0),
+                          child: Image.asset(
+                            'assets/images/logo.png',
+                            width: 80,
+                            height: 48,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
                       const SizedBox(height: 16),
                       Text(
-                        'Join Smart School',
+                        'Join FST Community',
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
@@ -221,7 +225,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   items: const [
                     DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
-                    DropdownMenuItem(value: 'staff', child: Text('Staff')),
                     DropdownMenuItem(value: 'admin', child: Text('Administrator')),
                   ],
                   onChanged: (value) {
