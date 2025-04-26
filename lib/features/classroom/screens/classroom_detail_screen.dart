@@ -72,13 +72,14 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
             appBar: AppBar(
               title: Text(classroom.name),
               bottom: TabBar(
-                controller: _tabController,
-                indicatorColor: AppColors.secondary,
-                tabs: const [
-                  Tab(text: 'Overview'),
-                  Tab(text: 'Devices'),
-                  Tab(text: 'Data'),
-                ],
+              controller: _tabController,
+              indicatorColor: AppColors.secondary,
+              labelColor: Colors.white,
+              tabs: const [
+                Tab(text: 'Overview'),
+                Tab(text: 'Devices'),
+                Tab(text: 'Data'),
+              ],
               ),
             ),
             body: TabBarView(

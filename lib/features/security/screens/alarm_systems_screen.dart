@@ -97,17 +97,7 @@ class _AlarmSystemsScreenState extends State<AlarmSystemsScreen> {
                   labelStyle: TextStyle(color: alarm.statusColor),
                 ),
                 const Spacer(),
-                TextButton.icon(
-                  icon: const Icon(Icons.history),
-                  label: const Text('Events'),
-                  onPressed: () {
-                    Navigator.pushNamed(
-                      context, 
-                      AppRoutes.alarmEvents,
-                      arguments: alarm.alarmId,
-                    );
-                  },
-                ),
+               
                 TextButton.icon(
                   icon: const Icon(Icons.edit),
                   label: const Text('Edit'),

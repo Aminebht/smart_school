@@ -150,10 +150,12 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
 
   Widget _buildEmptyAlarmSystems(BuildContext context) {
     return Card(
-      child: Padding(
+      child: Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Icon(
               Icons.security_outlined,
@@ -163,6 +165,7 @@ class _SecurityDashboardScreenState extends State<SecurityDashboardScreen> {
             const SizedBox(height: 16),
             const Text(
               'No alarm systems configured',
+              textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
                 color: AppColors.textSecondary,
