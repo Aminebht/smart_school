@@ -482,28 +482,7 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
                             }
                           },
                         ),
-                        ChoiceChip(
-                          label: const Text('Status Change'),
-                          selected: _localConditionType == 'status_change',  // Updated reference
-                          onSelected: (selected) {
-                            if (selected) {
-                              setStateDialog(() {  // Use dialog's setState
-                                _localConditionType = 'status_change';  // Updated reference
-                              });
-                            }
-                          },
-                        ),
-                        ChoiceChip(
-                          label: const Text('Motion'),
-                          selected: _localConditionType == 'motion_detected',  // Updated reference
-                          onSelected: (selected) {
-                            if (selected) {
-                              setStateDialog(() {  // Use dialog's setState
-                                _localConditionType = 'motion_detected';  // Updated reference
-                              });
-                            }
-                          },
-                        ),
+                     
                         ChoiceChip(
                           label: const Text('Schedule'),
                           selected: _localConditionType == 'schedule',  // Updated reference
@@ -520,7 +499,6 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
                     
                     // Conditionally show different fields based on _localConditionType
                     if (_localConditionType == 'threshold') _buildThresholdFields(setStateDialog),
-                    if (_localConditionType == 'status_change') _buildStatusChangeFields(setStateDialog),
                     if (_localConditionType == 'schedule') _buildScheduleFields(setStateDialog),
                     
                     const SizedBox(height: 16),
@@ -682,36 +660,6 @@ class _AlarmRulesScreenState extends State<AlarmRulesScreen> {
     );
   }
   
-  Widget _buildStatusChangeFields(StateSetter setState) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Status Change Configuration'),
-        DropdownButtonFormField<String>(
-          value: _statusValue,
-          decoration: const InputDecoration(
-            labelText: 'Status Value',
-          ),
-          items: [
-            const DropdownMenuItem(value: 'breached', child: Text('Breached')),
-            const DropdownMenuItem(value: 'secured', child: Text('Secured')),
-            const DropdownMenuItem(value: 'offline', child: Text('Offline')),
-          ],
-          onChanged: (value) {
-            setState(() {
-              _statusValue = value;
-            });
-          },
-          validator: (value) {
-            if (_conditionType == 'status_change' && (value == null || value.isEmpty)) {
-              return 'Please select a status value';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
   
   Widget _buildScheduleFields(StateSetter setState) {
     return Column(
