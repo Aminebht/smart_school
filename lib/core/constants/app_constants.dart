@@ -35,30 +35,23 @@ enum DeviceStatus {
 // Routes
 class AppRoutes {
   // Existing routes
-  static const splash = '/';
-  static const login = '/login';
-  static const resetPassword = '/reset_password';
-  static const signup = '/signup'; // Add this line
-  static const dashboard = '/dashboard';
-  static const department = '/department';
-  static const classroom = '/classroom';
-  static const camera = '/camera';
-  static const settings = '/settings';
-  // Security routes
-  static const security = '/security';
-  static const securityEvents = '/security_events';
-  
-  // Alarm routes
-  static const alarmSystems = '/alarm_systems';
-  static const alarmDetail = '/alarm_detail';
-  static const String alarmEdit = '/alarm_edit';
-  static const alarmRules = '/alarm_rules';
-  static const alarmActions = '/alarm_actions';
-  static const alarmEvents = '/alarm_events';
-  static const alerts = '/alerts';
-  static const int dashboardIndex = 0;
-  static const int departmentIndex = 1;
-  static const int securityIndex = 2;
-  static const int settingsIndex = 3; 
-  
+  static const String splash = '/splash';
+  static const String login = '/login';
+  static const String signup = '/signup';
+  static const String resetPassword = '/reset-password';
+  static const String dashboard = '/dashboard';
+  static const String department = '/department';
+  static const String classroom = '/classroom';
+  static const String camera = '/camera';
+  static const String security = '/security';
+  static const String securityEvents = '/security/events';
+  static const String alarmSystems = '/alarm-systems';
+  static const String alarmDetail = '/alarm-detail';
+  static const String alarmEdit = '/alarm-edit';
+  static const String alarmEvents = '/alarm-events';
+  static const String alarmRules = '/alarm-rules';
+  static const String alerts = '/alerts';
+  // New routes
+  static const String studentPresence = '/student-presence';
+  static const String settings = '/settings';
 }

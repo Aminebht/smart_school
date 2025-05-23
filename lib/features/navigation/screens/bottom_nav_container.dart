@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../../features/dashboard/screens/dashboard_screen.dart';
-import '../../../features/department/screens/department_list_screen.dart';
-import '../../../features/security/screens/security_dashboard_screen.dart';
-import '../../../features/settings/screens/settings_screen.dart';
-import '../../../core/constants/app_constants.dart';
+import 'package:smart_school/features/dashboard/screens/dashboard_screen.dart';
+import 'package:smart_school/features/department/screens/department_list_screen.dart';
+import 'package:smart_school/features/security/screens/security_dashboard_screen.dart';
+import 'package:smart_school/features/presence/screens/student_presence_screen.dart';
+import 'package:smart_school/features/settings/screens/settings_screen.dart'; // Make sure this exists
 
 class BottomNavContainer extends StatefulWidget {
   final int initialIndex;
-  
-  const BottomNavContainer({
-    Key? key,
-    this.initialIndex = 0,
-  }) : super(key: key);
+
+  const BottomNavContainer({Key? key, this.initialIndex = 0}) : super(key: key);
 
   @override
   State<BottomNavContainer> createState() => _BottomNavContainerState();
@@ -19,37 +16,34 @@ class BottomNavContainer extends StatefulWidget {
 
 class _BottomNavContainerState extends State<BottomNavContainer> {
   late int _currentIndex;
-  late final List<Widget> _screens;
   
+  // Update this list to include both StudentPresenceScreen and SettingsScreen
+  final List<Widget> _screens = [
+    const DashboardScreen(),
+    const DepartmentListScreen(),
+    const SecurityDashboardScreen(),
+    const StudentPresenceScreen(),
+    const SettingsScreen(), // Assuming you have a settings screen
+  ];
+
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
-    _screens = const [
-      DashboardScreen(),
-      DepartmentListScreen(),
-      SecurityDashboardScreen(),
-      SettingsScreen(), // Add the settings screen
-    ];
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
+        type: BottomNavigationBarType.fixed, // Important for displaying more than 3 items
         onTap: (index) {
           setState(() {
             _currentIndex = index;
           });
         },
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.grey,
-        type: BottomNavigationBarType.fixed, // Important for 4+ items
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
@@ -62,6 +56,10 @@ class _BottomNavContainerState extends State<BottomNavContainer> {
           BottomNavigationBarItem(
             icon: Icon(Icons.security),
             label: 'Security',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people),
+            label: 'Presence',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),

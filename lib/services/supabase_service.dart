@@ -1374,4 +1374,83 @@ static Future<int> getUnresolvedAlertCount() async {
     return 0;
   }
 }
+
+// Get student attendance data by date
+  static Future<List<Map<String, dynamic>>> getAttendanceByDate(DateTime date) async {
+    final client = await getClient();
+    try {
+      final response = await client
+          .from('daily_attendance')
+          .select('''
+            attendance_id,
+            student_id,
+            attendance_date,
+            check_in_time,
+            students!inner(name, email)
+          ''')
+          .eq('attendance_date', date.toIso8601String().split('T')[0])
+          .order('check_in_time', ascending: true);
+          
+      // Transform the response to include student name directly
+      return List<Map<String, dynamic>>.from(response.map((record) {
+        return {
+          'attendance_id': record['attendance_id'],
+          'student_id': record['student_id'],
+          'attendance_date': record['attendance_date'],
+          'check_in_time': record['check_in_time'],
+          'student_name': record['students']['name'],
+        };
+      }));
+    } catch (e) {
+      print('Error getting attendance data: $e');
+      return [];
+    }
+  }
+  
+  // Get all students
+  static Future<List<Map<String, dynamic>>> getStudents() async {
+    final client = await getClient();
+    try {
+      final response = await client
+          .from('students')
+          .select('''
+            student_id,
+            name,
+            email,
+            rfid_cards!left(rfid_uid)
+          ''')
+          .order('name');
+          
+      // Transform the response to flatten structure
+      return List<Map<String, dynamic>>.from(response.map((record) {
+        return {
+          'student_id': record['student_id'],
+          'name': record['name'],
+          'email': record['email'],
+          'rfid_uid': record['rfid_cards'] != null ? 
+                     record['rfid_cards']['rfid_uid'] : null,
+        };
+      }));
+    } catch (e) {
+      print('Error getting students: $e');
+      return [];
+    }
+  }
+  
+  // Record student attendance
+  static Future<bool> recordAttendance(int studentId, DateTime date) async {
+    final client = await getClient();
+    try {
+      final dateString = date.toIso8601String().split('T')[0];
+      await client.from('daily_attendance').upsert({
+        'student_id': studentId,
+        'attendance_date': dateString,
+        'check_in_time': DateTime.now().toIso8601String(),
+      }, onConflict: 'student_id, attendance_date');
+      return true;
+    } catch (e) {
+      print('Error recording attendance: $e');
+      return false;
+    }
+  }
 }

@@ -393,11 +393,19 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
         labelText: 'Trigger Rule',
         hintText: 'Select rule that triggers this action',
         border: OutlineInputBorder(),
+        // Add this to handle text overflow
+        isCollapsed: false,
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       ),
+      isExpanded: true, // This will make the dropdown expand to fill available width
+      menuMaxHeight: 300, // Limit menu height with a scrollable view if needed
       items: rules.map((rule) {
         return DropdownMenuItem<int>(
           value: rule.ruleId,
-          child: Text(rule.ruleName),
+          child: Text(
+            rule.ruleName,
+            overflow: TextOverflow.ellipsis, // Handle text overflow with ellipsis
+          ),
         );
       }).toList(),
       onChanged: (value) {

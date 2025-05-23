@@ -4,6 +4,8 @@ import 'package:smart_school/core/models/alarm_system_model.dart';
 import 'package:smart_school/core/models/camera_model.dart';
 import 'package:smart_school/features/alerts/providers/alerts_provider.dart';
 import 'package:smart_school/features/alerts/screens/alerts_screen.dart';
+import 'package:smart_school/features/presence/providers/attendance_provider.dart';
+import 'package:smart_school/features/presence/screens/student_presence_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/constants/app_constants.dart';
 import 'features/auth/providers/auth_provider.dart';
@@ -54,6 +56,7 @@ class SmartSchoolApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
         ChangeNotifierProvider(create: (_) => SecurityProvider()),
         ChangeNotifierProvider(create: (_) => AlertsProvider()), // Make sure this is here
+        ChangeNotifierProvider(create: (_) => AttendanceProvider()), // Add AttendanceProvider here
         // Other providers...
       ],
       child: MaterialApp(
@@ -106,14 +109,17 @@ class SmartSchoolApp extends StatelessWidget {
           
           // Update dashboard to use the container
           AppRoutes.dashboard: (context) => const BottomNavContainer(initialIndex: 0),
-          // Keep these as alternatives for deep linking
+          // Update these route mappings
           AppRoutes.department: (context) => const BottomNavContainer(initialIndex: 1),
           AppRoutes.security: (context) => const BottomNavContainer(initialIndex: 2),
+          AppRoutes.studentPresence: (context) => const BottomNavContainer(initialIndex: 3),
+          AppRoutes.settings: (context) => const BottomNavContainer(initialIndex: 4), // Add this for settings
           
           // Keep other specific screen routes unchanged
           AppRoutes.securityEvents: (context) => const SecurityEventsScreen(),
           AppRoutes.alarmSystems: (context) => const AlarmSystemsScreen(),
           AppRoutes.alerts: (context) => const AlertsScreen(),
+          AppRoutes.studentPresence: (context) => const StudentPresenceScreen(), // Add this line
           // Add other routes as they are developed
         },
         onGenerateRoute: (settings) {
