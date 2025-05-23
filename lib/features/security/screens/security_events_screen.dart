@@ -28,7 +28,7 @@ class _SecurityEventsScreenState extends State<SecurityEventsScreen> with Single
       }
     });
     
-    // Load initial data after the widget is built
+    // Load events after the first frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadEvents();
     });

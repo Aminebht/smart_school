@@ -17,7 +17,7 @@ class SecurityProvider extends ChangeNotifier {
   // Initialize empty collections
   List<SecurityDeviceModel> _devices = [];
   List<SensorModel> _sensors = [];
-  List<ActuatorModel> _actuators = [];
+  List<dynamic> _actuators = []; // Instead of List<ActuatorModel>
   List<CameraModel> _cameras = [];
 
   // Existing properties
@@ -49,7 +49,7 @@ class SecurityProvider extends ChangeNotifier {
   // Existing getters
   List<SecurityDeviceModel> get devices => _devices;
   List<SensorModel> get sensors => _sensors;
-  List<ActuatorModel> get actuators => _actuators;
+  List<dynamic> get actuators => _actuators; // Updated getter
   List<CameraModel> get cameras => _cameras;
   List<SecurityDeviceModel> get doorDevices => _devices.where((d) => d.deviceType == 'door_lock').toList();
   List<SecurityDeviceModel> get windowDevices => _devices.where((d) => d.deviceType == 'window_sensor').toList();
@@ -104,22 +104,6 @@ class SecurityProvider extends ChangeNotifier {
       // Don't notifyListeners here either
     }
   }
-
-  Future<void> loadActuators() async {
-  try {
-    _isLoading = true;
-    notifyListeners();
-    
-    _actuators = (await SupabaseService.getActuators()).cast<ActuatorModel>();
-    
-    _isLoading = false;
-    notifyListeners();
-  } catch (e) {
-    _errorMessage = 'Failed to load actuators: ${e.toString()}';
-    _isLoading = false;
-    notifyListeners();
-  }
-}
 
   // Save (create or update) an alarm system
 Future<bool> saveAlarmSystem(AlarmSystemModel alarm) async {
@@ -228,10 +212,16 @@ Future<bool> saveAlarmSystem(AlarmSystemModel alarm) async {
   }
 
   // Load security events
-  Future<void> loadSecurityEvents({bool? acknowledged}) async {
+  // Fix the loadSecurityEvents method to prevent build-time state changes
+Future<void> loadSecurityEvents({bool? acknowledged}) async {
+  // Set loading state before notifying listeners
   _isLoading = true;
   _errorMessage = null;
-  notifyListeners();
+  
+  // Use addPostFrameCallback to delay the notification until after the current build
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    notifyListeners();
+  });
 
   try {
     final eventsJson = await SupabaseService.getSecurityEvents(
@@ -241,12 +231,20 @@ Future<bool> saveAlarmSystem(AlarmSystemModel alarm) async {
     securityEvents = eventsJson.map((json) => SecurityEventModel.fromJson(json)).toList();
     
     _isLoading = false;
-    notifyListeners();
+    
+    // Use addPostFrameCallback to delay the notification until after the current build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   } catch (e) {
     print('Error loading security events: $e');
     _errorMessage = 'Failed to load security events';
     _isLoading = false;
-    notifyListeners();
+    
+    // Use addPostFrameCallback to delay the notification until after the current build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   }
 }
 
@@ -258,7 +256,11 @@ Future<void> loadRecentSecurityEvents({int limit = 5}) async {
     );
     
     _recentEvents = eventsJson.map((json) => SecurityEventModel.fromJson(json)).toList();
-    notifyListeners();
+    
+    // Use addPostFrameCallback to delay the notification
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
   } catch (e) {
     print('Error loading recent security events: $e');
     // Don't update error message for recent events to avoid disrupting the dashboard
@@ -910,4 +912,38 @@ void _updateEventAcknowledgementStatus(int eventId, bool acknowledged) {
       rethrow;
     }
   }
+
+  // This would go in the SecurityProvider class
+Future<void> loadActuators() async {
+  // Set loading state but don't notify yet
+  _isLoading = true;
+  
+  // Schedule notification for after the frame completes
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    notifyListeners();
+  });
+  
+  try {
+    final actuatorData = await SupabaseService.getActuators();
+    
+    // Store the actuator data directly as a list of maps
+    // Don't try to cast to ActuatorModel
+    _actuators = actuatorData;
+    
+    _isLoading = false;
+    
+    // Schedule notification for after any ongoing build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
+  } catch (e) {
+    _errorMessage = 'Failed to load actuators: ${e.toString()}';
+    _isLoading = false;
+    
+    // Schedule notification for after any ongoing build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      notifyListeners();
+    });
+  }
+}
 }

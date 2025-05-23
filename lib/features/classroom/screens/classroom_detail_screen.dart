@@ -91,36 +91,37 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
                     children: [
                       _buildClassroomHeader(classroom),
                       _buildSensorStatusGrid(provider),
+                      if (classroom.name == 'Salle C')
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'Classroom Camera',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                TextButton.icon(
-                                  icon: const Icon(Icons.history),
-                                  label: const Text('View Events'),
-                                  onPressed: () {
-                                    // Navigate to camera events history
-                                  },
-                                ),
-                              ],
+                            const Text(
+                            'Classroom Camera',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const SizedBox(height: 8),
-                            CameraThumbnailWidget(
-                              classroomId: int.parse(widget.classroomId),
-                              height: 180,
+                            ),
+                            TextButton.icon(
+                            icon: const Icon(Icons.history),
+                            label: const Text('View Events'),
+                            onPressed: () {
+                              // Navigate to camera events history
+                            },
                             ),
                           ],
+                          ),
+                          const SizedBox(height: 8),
+                          CameraThumbnailWidget(
+                          classroomId: int.parse(widget.classroomId),
+                          height: 180,
+                          ),
+                        ],
                         ),
                       ),
                     ],
@@ -151,41 +152,42 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
           Row(
             children: [
               Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: classroom.statusColor,
-                  shape: BoxShape.circle,
-                ),
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: classroom.statusColor,
+            shape: BoxShape.circle,
+          ),
               ),
               const SizedBox(width: 8),
               Text(
-                classroom.name,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.text,
-                ),
+          classroom.name,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.text,
+          ),
               ),
               const Spacer(),
               Text(
-                _getStatusText(classroom.status),
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: classroom.statusColor,
-                ),
+          _getStatusText(classroom.status),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: classroom.statusColor,
+          ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            'Capacity: ${classroom.capacity} students',
-            style: const TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
+          if (classroom.capacity != 0)
+            Text(
+              'Capacity: ${classroom.capacity} students',
+              style: const TextStyle(
+          fontSize: 14,
+          color: AppColors.textSecondary,
+              ),
             ),
-          ),
         ],
       ),
     );

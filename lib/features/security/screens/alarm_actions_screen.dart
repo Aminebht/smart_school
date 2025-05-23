@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:smart_school/core/models/actuator_model.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/alarm_action_model.dart';
 import '../../../core/models/alarm_rule_model.dart';
@@ -506,11 +507,13 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
   
   Widget _buildActuatorFields() {
     final provider = Provider.of<SecurityProvider>(context, listen: false);
-    final actuators = provider.actuators;
+    
+    // Get actuators - explicitly treat them as List<dynamic>
+    final List<dynamic> rawActuators = provider.actuators;
     
     return Column(
       children: [
-        if (actuators.isEmpty) ...[
+        if (rawActuators.isEmpty) ...[
           const Padding(
             padding: EdgeInsets.all(16.0),
             child: Center(
@@ -527,17 +530,31 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
               labelText: 'Select Actuator',
               border: OutlineInputBorder(),
             ),
-            items: actuators.map((actuator) {
-              final actuatorId = actuator.actuatorId;
-              final deviceName = actuator.name ?? 'Actuator $actuatorId';
-    
+            items: rawActuators.map((dynamic actuator) {
+              // Extract the necessary data from the actuator object
+              int actuatorId = 0;
+              String deviceName = 'Unknown Actuator';
               
-              // Format the display name with location if available
-              final displayText =deviceName;
+              // Safely extract data from Map objects
+              if (actuator is Map<String, dynamic>) {
+                // Use try-catch to handle any unexpected formats
+                try {
+                  actuatorId = (actuator['actuator_id'] ?? 0) as int;
+                  deviceName = (actuator['name'] ?? 'Actuator $actuatorId') as String;
+                  
+                  // Add location information if available
+                  final deviceLocation = actuator['device_location'];
+                  if (deviceLocation != null && deviceLocation.toString().isNotEmpty) {
+                    deviceName += ' (${deviceLocation})';
+                  }
+                } catch (e) {
+                  print('Error parsing actuator data: $e');
+                }
+              }
               
               return DropdownMenuItem<int>(
                 value: actuatorId,
-                child: Text(displayText),
+                child: Text(deviceName),
               );
             }).toList(),
             onChanged: (value) {

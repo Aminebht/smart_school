@@ -61,7 +61,7 @@ class ActuatorModel {
 
   // Helper method to parse device status from string
   static DeviceStatus _parseStatus(String? status) {
-    if (status == null) return DeviceStatus.offline;
+    if (status == null) return DeviceStatus.online;
     
     switch (status.toLowerCase()) {
       case 'online':
