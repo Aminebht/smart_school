@@ -22,11 +22,16 @@ class DeviceControlWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('🔄 Building DeviceControlWidget for: ${device.runtimeType}');
+    
     if (device is ActuatorModel) {
+      print('🔌 Building for Actuator: ${(device as ActuatorModel).name}');
       return _buildActuatorControl(context, device as ActuatorModel);
     } else if (device is SensorModel) {
+      print('📡 Building for Sensor: ${(device as SensorModel).name}');
       return _buildSensorDisplay(context, device as SensorModel);
     } else {
+      print('⚠️ Unknown device type: ${device.runtimeType}');
       return const ListTile(
         title: Text('Unknown Device'),
         subtitle: Text('Type: unknown'),

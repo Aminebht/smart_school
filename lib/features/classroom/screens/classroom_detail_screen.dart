@@ -268,8 +268,19 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
 
   Widget _buildDevicesTab(ClassroomProvider provider) {
     final classroom = provider.classroom!;
-    final List<SensorModel> sensors = classroom.sensors;
+    final List<SensorModel> sensors = classroom.sensors; 
     final List<ActuatorModel> actuators = classroom.actuators;
+    
+    // Debug prints
+    print('📱 Devices Tab - Sensors count: ${sensors.length}');
+    print('📱 Devices Tab - Actuators count: ${actuators.length}');
+    if (actuators.isEmpty) {
+      print('⚠️ No actuators found in the classroom model');
+    } else {
+      for (var actuator in actuators) {
+        print('🔌 Actuator: ${actuator.name}, Type: ${actuator.actuatorType}, State: ${actuator.currentState}');
+      }
+    }
     
     if (sensors.isEmpty && actuators.isEmpty) {
       return const Center(
@@ -277,12 +288,15 @@ class _ClassroomDetailScreenState extends State<ClassroomDetailScreen> with Sing
       );
     }
 
+    // Force both sections to be visible for testing
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Actuators section
+         
+          
+          // Regular actuators section
           if (actuators.isNotEmpty) ...[
             const Text(
               'Actuators',

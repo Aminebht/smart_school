@@ -44,10 +44,20 @@ class ClassroomProvider extends ChangeNotifier {
       final classroomJson = await SupabaseService.getClassroomDetails(classroomId);
       print('✅ Classroom JSON data received');
       
+      // Debug the actuators data directly from the JSON
+      if (classroomJson['actuators'] != null) {
+        print('🔌 Actuators in JSON: ${classroomJson['actuators'].length}');
+      } else {
+        print('⚠️ No actuators in JSON response');
+      }
+      
       try {
         _classroom = ClassroomModel.fromJson(classroomJson);
         print('✅ Classroom model created successfully');
         print('📋 Classroom: $_classroom');
+        
+        // Debug actuators in the created model
+        print('🔌 Actuators count in model: ${_classroom?.actuators.length ?? 0}');
       } catch (e) {
         print('❌ Error creating ClassroomModel: $e');
         print('❌ Stack trace: ${StackTrace.current}');
@@ -172,7 +182,6 @@ class ClassroomProvider extends ChangeNotifier {
         actuatorId: actuator.actuatorId,
         deviceId: actuator.deviceId,
         actuatorType: actuator.actuatorType,
-        controlType: actuator.controlType,
         currentState: isOn ? "on" : "off", // Set state based on toggle value
         createdAt: actuator.createdAt,
         updatedAt: DateTime.now(),
@@ -235,7 +244,6 @@ class ClassroomProvider extends ChangeNotifier {
         actuatorId: actuator.actuatorId,
         deviceId: actuator.deviceId,
         actuatorType: actuator.actuatorType,
-        controlType: actuator.controlType,
         currentState: actuator.currentState,
         createdAt: actuator.createdAt,
         updatedAt: DateTime.now(),

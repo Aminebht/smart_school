@@ -5,7 +5,6 @@ class ActuatorModel {
   final int actuatorId;
   final int deviceId;
   final String actuatorType;
-  final String controlType;
   final String? currentState;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -17,7 +16,6 @@ class ActuatorModel {
     required this.actuatorId,
     required this.deviceId,
     required this.actuatorType,
-    required this.controlType,
     this.currentState,
     required this.createdAt,
     required this.updatedAt,
@@ -49,7 +47,6 @@ class ActuatorModel {
       actuatorId: json['actuator_id'],
       deviceId: json['device_id'],
       actuatorType: json['actuator_type'],
-      controlType: json['control_type'],
       currentState: json['current_state'],
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
