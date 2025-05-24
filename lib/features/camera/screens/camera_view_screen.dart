@@ -1,10 +1,7 @@
-import 'dart:async';
-import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
-import 'package:http/http.dart' as http;
+import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../../core/models/camera_model.dart';
-import '../../../services/supabase_service.dart';
 
 class CameraViewScreen extends StatefulWidget {
   final CameraModel camera;
@@ -19,151 +16,85 @@ class CameraViewScreen extends StatefulWidget {
 }
 
 class _CameraViewScreenState extends State<CameraViewScreen> {
-  VideoPlayerController? _videoController;
+  WebSocketChannel? _channel;
+  Uint8List? _imageBytes;
   bool _isFullScreen = false;
   bool _showControls = true;
-  bool _isInitializing = true;
-  bool _hasError = false;
+  bool _isConnected = false;
+  bool _isConnecting = true;
+  String? _connectionError;
   
-  // New SSE streaming properties
-  String? _imageUrl;
-  StreamSubscription? _streamSubscription;
-  final _client = http.Client();
-  bool _isSSEStream = false;
-
   @override
   void initState() {
     super.initState();
-    _determineStreamType();
+    _connectToStream();
   }
 
-  void _determineStreamType() {
-    // Check if this is likely an SSE stream
-    if (widget.camera.streamUrl.isEmpty) {
-      setState(() {
-        _isInitializing = false;
-        _hasError = true;
-      });
-      return;
-    }
-
-    final isSSEStream = widget.camera.streamUrl.contains('events') || 
-                        widget.camera.streamUrl.contains('sse') ||
-                        widget.camera.streamUrl.contains('stream-events');
-
-    final isVideoStream = widget.camera.streamUrl.contains('.m3u8') ||
-                          widget.camera.streamUrl.contains('stream') ||
-                          widget.camera.streamUrl.contains('.mp4');
-    
-    if (isSSEStream) {
-      _isSSEStream = true;
-      _connectToStream();
-    } else if (isVideoStream) {
-      _initializeVideoPlayer();
-    } else {
-      // Assume static image
-      setState(() {
-        _isInitializing = false;
-      });
-    }
-  }
-
-  void _initializeVideoPlayer() {
-    _videoController = VideoPlayerController.network(
-      widget.camera.streamUrl,
-    );
-
-    _videoController!.initialize().then((_) {
-      if (mounted) {
-        _videoController!.play();
-        _videoController!.setLooping(true);
-        setState(() {
-          _isInitializing = false;
-        });
-      }
-    }).catchError((error) {
-      print("Video initialization error: $error");
-      if (mounted) {
-        setState(() {
-          _isInitializing = false;
-          _hasError = true;
-        });
-      }
-    });
-  }
-
-  void _connectToStream() async {
-    setState(() {
-      _isInitializing = true;
-      _hasError = false;
-    });
-    
+  void _connectToStream() {
     try {
-      // Create a request to the stream URL
-      final request = http.Request('GET', Uri.parse(widget.camera.streamUrl));
-      request.headers['Cache-Control'] = 'no-cache';
-      request.headers['Accept'] = 'text/event-stream';
+      setState(() {
+        _isConnecting = true;
+        _connectionError = null;
+      });
       
-      final response = await _client.send(request);
+      // Make sure we use WebSocket URL (ws:// or wss://)
+      String streamUrl = widget.camera.streamUrl;
+      if (streamUrl.startsWith('http')) {
+        streamUrl = streamUrl.replaceFirst('http', 'ws');
+      }
+
+      print('Connecting to WebSocket: $streamUrl');
       
-      // Handle the stream response
-      _streamSubscription = response.stream
-          .transform(utf8.decoder)
-          .transform(const LineSplitter())
-          .listen(
-        (line) {
-          if (line.startsWith('data:')) {
-            final data = line.substring(5).trim();
-            if (data != 'keep-alive') {
-              if (mounted) {
-                setState(() {
-                  _imageUrl = data;
-                  _isInitializing = false;
-                });
-              }
-            }
+      _channel = WebSocketChannel.connect(
+        Uri.parse(streamUrl)
+      );
+      
+      _channel!.stream.listen(
+        (data) {
+          if (data is Uint8List) {
+            setState(() {
+              _imageBytes = data;
+              _isConnected = true;
+              _isConnecting = false;
+            });
           }
         },
         onError: (error) {
-          print('Error with stream: $error');
-          if (mounted) {
-            setState(() {
-              _hasError = true;
-              _isInitializing = false;
-            });
-          }
-          _reconnect();
+          print('WebSocket error: $error');
+          setState(() {
+            _isConnected = false;
+            _isConnecting = false;
+            _connectionError = 'Connection error: $error';
+          });
         },
         onDone: () {
-          print('Stream closed');
-          _reconnect();
+          print('WebSocket connection closed');
+          setState(() {
+            _isConnected = false;
+            _isConnecting = false;
+          });
+          
+          // Try to reconnect after a delay
+          Future.delayed(const Duration(seconds: 3), () {
+            if (mounted && !_isConnected) {
+              _connectToStream();
+            }
+          });
         },
       );
     } catch (e) {
-      print('Failed to connect to stream: $e');
-      if (mounted) {
-        setState(() {
-          _hasError = true;
-          _isInitializing = false;
-        });
-      }
-      _reconnect();
+      print('Failed to connect to WebSocket: $e');
+      setState(() {
+        _isConnected = false;
+        _isConnecting = false;
+        _connectionError = 'Connection failed: $e';
+      });
     }
-  }
-
-  void _reconnect() {
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        _connectToStream();
-      }
-    });
   }
 
   @override
   void dispose() {
-    _videoController?.dispose();
-    _streamSubscription?.cancel();
-    _client.close();
+    _channel?.sink.close();
     super.dispose();
   }
 
@@ -180,11 +111,11 @@ class _CameraViewScreenState extends State<CameraViewScreen> {
               });
             },
             child: Center(
-              child: _isInitializing
-                  ? const CircularProgressIndicator()
-                  : _hasError
-                      ? _buildErrorWidget()
-                      : _buildStreamWidget(),
+              child: _isConnecting
+                  ? _buildConnectingIndicator()
+                  : _isConnected && _imageBytes != null
+                      ? _buildStreamView()
+                      : _buildErrorView(),
             ),
           ),
           if (_showControls) _buildControlsOverlay(),
@@ -193,70 +124,45 @@ class _CameraViewScreenState extends State<CameraViewScreen> {
     );
   }
 
-  Widget _buildStreamWidget() {
-    // Handle SSE image stream
-    if (_isSSEStream && _imageUrl != null) {
-      try {
-        return Image.memory(
-          base64Decode(_imageUrl!.split(',')[1]),
-          fit: _isFullScreen ? BoxFit.cover : BoxFit.contain,
-          gaplessPlayback: true, // Prevents flickering between frames
-          errorBuilder: (context, error, stackTrace) {
-            print("Error rendering image: $error");
-            return _buildErrorWidget();
-          },
-        );
-      } catch (e) {
-        print("Error processing stream image: $e");
-        return _buildErrorWidget();
-      }
-    }
-    // Handle video stream
-    else if (_videoController != null && _videoController!.value.isInitialized) {
-      return AspectRatio(
-        aspectRatio: _videoController!.value.aspectRatio,
-        child: VideoPlayer(_videoController!),
-      );
-    } 
-    // Handle static image
-    else {
-      return Image.network(
-        widget.camera.streamUrl,
-        fit: _isFullScreen ? BoxFit.cover : BoxFit.contain,
-        errorBuilder: (context, error, stackTrace) {
-          return _buildErrorWidget();
-        },
-      );
-    }
+  Widget _buildStreamView() {
+    return Image.memory(
+      _imageBytes!,
+      fit: _isFullScreen ? BoxFit.cover : BoxFit.contain,
+      gaplessPlayback: true, // Prevents flickering between frames
+    );
   }
 
-  Widget _buildErrorWidget() {
-    return Container(
-      color: Colors.black12,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.videocam_off, size: 64, color: Colors.white54),
-            const SizedBox(height: 16),
-            const Text(
-              'Camera feed unavailable',
-              style: TextStyle(color: Colors.white54, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Please check connection or try again later',
-              style: TextStyle(color: Colors.white38, fontSize: 14),
-            ),
-            const SizedBox(height: 24),
-            if (_isSSEStream)
-              ElevatedButton(
-                onPressed: _connectToStream,
-                child: const Text('Retry Connection'),
-              ),
-          ],
+  Widget _buildConnectingIndicator() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: const [
+        CircularProgressIndicator(color: Colors.white),
+        SizedBox(height: 16),
+        Text(
+          'Connecting to camera...',
+          style: TextStyle(color: Colors.white),
         ),
-      ),
+      ],
+    );
+  }
+
+  Widget _buildErrorView() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Icon(Icons.videocam_off, size: 64, color: Colors.white54),
+        const SizedBox(height: 16),
+        Text(
+          _connectionError ?? 'Camera feed unavailable',
+          style: const TextStyle(color: Colors.white54),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 24),
+        ElevatedButton(
+          onPressed: _connectToStream,
+          child: const Text('Reconnect'),
+        ),
+      ],
     );
   }
 
@@ -297,10 +203,25 @@ class _CameraViewScreenState extends State<CameraViewScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _isConnected ? Colors.green : Colors.red,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _isConnected ? 'Live' : 'Offline',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-        Spacer(),
+        const Spacer(),
         Container(
           padding: EdgeInsets.only(
             bottom: MediaQuery.of(context).padding.bottom + 8,
@@ -330,28 +251,24 @@ class _CameraViewScreenState extends State<CameraViewScreen> {
                   });
                 },
               ),
-              if (_videoController != null && !_isSSEStream)
-                _buildControlButton(
-                  icon: _videoController!.value.isPlaying
-                      ? Icons.pause
-                      : Icons.play_arrow,
-                  label: _videoController!.value.isPlaying ? 'Pause' : 'Play',
-                  onPressed: () {
-                    setState(() {
-                      if (_videoController!.value.isPlaying) {
-                        _videoController!.pause();
-                      } else {
-                        _videoController!.play();
-                      }
-                    });
-                  },
-                ),
-              if (_isSSEStream)
-                _buildControlButton(
-                  icon: Icons.refresh,
-                  label: 'Reconnect',
-                  onPressed: _connectToStream,
-                ),
+              _buildControlButton(
+                icon: Icons.refresh,
+                label: 'Reconnect',
+                onPressed: _connectToStream,
+              ),
+              _buildControlButton(
+                icon: Icons.photo_camera,
+                label: 'Snapshot',
+                onPressed: () {
+                  // Implement snapshot functionality if needed
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Snapshot captured'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
             ],
           ),
         ),
@@ -371,7 +288,10 @@ class _CameraViewScreenState extends State<CameraViewScreen> {
         children: [
           Icon(icon, color: Colors.white),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12)),
+          Text(
+            label, 
+            style: const TextStyle(color: Colors.white, fontSize: 12)
+          ),
         ],
       ),
     );

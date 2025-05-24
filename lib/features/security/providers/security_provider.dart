@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'dart:developer' as developer;
 import '../../../core/models/security_device_model.dart';
 import '../../../core/models/security_event_model.dart';
 import '../../../core/models/alarm_system_model.dart';
@@ -915,35 +916,26 @@ void _updateEventAcknowledgementStatus(int eventId, bool acknowledged) {
 
   // This would go in the SecurityProvider class
 Future<void> loadActuators() async {
-  // Set loading state but don't notify yet
   _isLoading = true;
-  
-  // Schedule notification for after the frame completes
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    notifyListeners();
-  });
+  notifyListeners();
   
   try {
     final actuatorData = await SupabaseService.getActuators();
-    
-    // Store the actuator data directly as a list of maps
-    // Don't try to cast to ActuatorModel
     _actuators = actuatorData;
     
-    _isLoading = false;
+    // Add debug logging to inspect actuator data
+    developer.log('📊 Loaded ${_actuators.length} actuators', name: 'SecurityProvider');
+    for (var actuator in _actuators) {
+      developer.log('🔌 Actuator: ${actuator['actuator_id']} - ${actuator['name']}', name: 'SecurityProvider');
+    }
     
-    // Schedule notification for after any ongoing build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifyListeners();
-    });
-  } catch (e) {
+    _isLoading = false;
+    notifyListeners();
+  } catch (e, stackTrace) {
+    developer.log('❌ Error loading actuators: $e', name: 'SecurityProvider', error: e, stackTrace: stackTrace);
     _errorMessage = 'Failed to load actuators: ${e.toString()}';
     _isLoading = false;
-    
-    // Schedule notification for after any ongoing build
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      notifyListeners();
-    });
+    notifyListeners();
   }
 }
 }

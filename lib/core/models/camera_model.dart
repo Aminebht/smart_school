@@ -7,6 +7,9 @@ class CameraModel {
   final String name;
   final String streamUrl;
   final bool isActive;
+  final String description;
+  final bool motionDetectionEnabled;
+  final bool isRecording;
   final int? deviceId;
   final int? classroomId;
   final String? classroomName;
@@ -15,10 +18,13 @@ class CameraModel {
     required this.cameraId,
     required this.name,
     required this.streamUrl,
-    this.isActive = true,
+    required this.isActive,
+    required this.description,
+    required this.motionDetectionEnabled,
+    required this.isRecording,
     this.deviceId,
     this.classroomId,
-    this.classroomName, required bool motionDetectionEnabled, required String description, required bool isRecording,
+    this.classroomName,
   });
 
   factory CameraModel.fromJson(Map<String, dynamic> json) {
@@ -27,9 +33,12 @@ class CameraModel {
       name: json['name'] ?? 'Unnamed Camera',
       streamUrl: json['stream_url'] ?? json['streamUrl'] ?? '',
       isActive: json['is_active'] ?? json['isActive'] ?? true,
+      description: json['description'] ?? '',
+      motionDetectionEnabled: json['motion_detection_enabled'] ?? false,
+      isRecording: json['is_recording'] ?? false,
       deviceId: json['device_id'] ?? json['deviceId'],
       classroomId: json['classroom_id'] ?? json['classroomId'],
-      classroomName: json['classroom_name'] ?? json['classroomName'], motionDetectionEnabled: true, description: '', isRecording: true,
+      classroomName: json['classroom_name'] ?? json['classroomName'],
     );
   }
 
@@ -39,6 +48,9 @@ class CameraModel {
       'name': name,
       'stream_url': streamUrl,
       'is_active': isActive,
+      'description': description,
+      'motion_detection_enabled': motionDetectionEnabled,
+      'is_recording': isRecording,
       'device_id': deviceId,
       'classroom_id': classroomId,
     };

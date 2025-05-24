@@ -641,7 +641,7 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
         final provider = Provider.of<SecurityProvider>(context, listen: false);
         final success = widget.action == null
             ? await provider.saveAlarmAction(action)
-            : await provider.updateAlarmAction(action);
+            : await provider.updateAlarmAction(action,);
             
         if (success) {
           Navigator.pop(context);
