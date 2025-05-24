@@ -516,7 +516,7 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
   Widget _buildActuatorFields() {
     final provider = Provider.of<SecurityProvider>(context, listen: false);
     
-    // Get actuators - explicitly treat them as List<dynamic>
+    // Get actuators as raw JSON data
     final List<dynamic> rawActuators = provider.actuators;
     
     return Column(
@@ -539,30 +539,51 @@ class _ActionFormDialogState extends State<ActionFormDialog> {
               border: OutlineInputBorder(),
             ),
             items: rawActuators.map((dynamic actuator) {
+              // Debug: Print each actuator to see its structure
+              print('Processing actuator: $actuator');
+              
               // Extract the necessary data from the actuator object
               int actuatorId = 0;
               String deviceName = 'Unknown Actuator';
               
-              // Safely extract data from Map objects
+              // Handle the actuator data structure
               if (actuator is Map<String, dynamic>) {
-                // Use try-catch to handle any unexpected formats
-                try {
-                  actuatorId = (actuator['actuator_id'] ?? 0) as int;
-                  deviceName = (actuator['name'] ?? 'Actuator $actuatorId') as String;
-                  
-                  // Add location information if available
-                  final deviceLocation = actuator['device_location'];
-                  if (deviceLocation != null && deviceLocation.toString().isNotEmpty) {
-                    deviceName += ' (${deviceLocation})';
-                  }
-                } catch (e) {
-                  print('Error parsing actuator data: $e');
+                // Try different possible field names for ID
+                actuatorId = actuator['actuator_id'] ?? 
+                            actuator['id'] ?? 
+                            actuator['device_id'] ?? 0;
+                
+                // Try different possible field names for name
+                deviceName = actuator['actuator_name'] ?? 
+                            actuator['name'] ?? 
+                            actuator['device_name'] ?? 
+                            actuator['label'] ?? 
+                            'Actuator $actuatorId';
+                
+                // Add location information if available
+                final location = actuator['location'] ?? 
+                                actuator['device_location'] ?? 
+                                actuator['room'] ?? 
+                                actuator['classroom'];
+                if (location != null && location.toString().isNotEmpty) {
+                  deviceName += ' (${location})';
+                }
+
+                // Add type information if available
+                final type = actuator['actuator_type'] ?? 
+                            actuator['device_type'] ?? 
+                            actuator['type'];
+                if (type != null && type.toString().isNotEmpty) {
+                  deviceName += ' - ${type}';
                 }
               }
               
               return DropdownMenuItem<int>(
                 value: actuatorId,
-                child: Text(deviceName),
+                child: Text(
+                  deviceName,
+                  overflow: TextOverflow.ellipsis,
+                ),
               );
             }).toList(),
             onChanged: (value) {

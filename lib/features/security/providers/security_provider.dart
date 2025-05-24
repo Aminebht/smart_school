@@ -181,9 +181,14 @@ Future<bool> saveAlarmSystem(AlarmSystemModel alarm) async {
       final camerasJson = await SupabaseService.getCameras();
       _cameras = camerasJson.map((json) => CameraModel.fromJson(json)).toList();
 
-      // Additionally load all actuators - regardless of alarm association
+      // Fix: Load actuators and store as raw JSON data for now
       final actuatorsJson = await SupabaseService.getActuators();
-      _actuators = actuatorsJson.map((json) => ActuatorModel.fromJson(json)).toList();
+      _actuators = actuatorsJson; // Store as raw JSON data instead of mapping to ActuatorModel
+
+      // Debug: Print the first actuator to see its structure
+      if (_actuators.isNotEmpty) {
+        print('Actuator data structure: ${_actuators.first}');
+      }
 
       // Calculate stats
       _updateSecurityStats();
@@ -923,16 +928,15 @@ Future<void> loadActuators() async {
     final actuatorData = await SupabaseService.getActuators();
     _actuators = actuatorData;
     
-    // Add debug logging to inspect actuator data
-    developer.log('📊 Loaded ${_actuators.length} actuators', name: 'SecurityProvider');
-    for (var actuator in _actuators) {
-      developer.log('🔌 Actuator: ${actuator['actuator_id']} - ${actuator['name']}', name: 'SecurityProvider');
+    // Debug logging to see actuator data structure
+    if (_actuators.isNotEmpty) {
+      print('Sample actuator data structure:');
+      print(_actuators.first);
     }
     
     _isLoading = false;
     notifyListeners();
-  } catch (e, stackTrace) {
-    developer.log('❌ Error loading actuators: $e', name: 'SecurityProvider', error: e, stackTrace: stackTrace);
+  } catch (e) {
     _errorMessage = 'Failed to load actuators: ${e.toString()}';
     _isLoading = false;
     notifyListeners();
